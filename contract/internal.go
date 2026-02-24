@@ -236,6 +236,29 @@ func setSoulbound(tokenId string) {
 }
 
 // ===================================
+// Token Properties Management
+// ===================================
+
+// propertiesKey returns the state key for a token's properties.
+func propertiesKey(tokenId string) string {
+	return "props|" + tokenId
+}
+
+// getTokenProperties retrieves the raw JSON properties for a token ID.
+func getTokenProperties(tokenId string) string {
+	val := sdk.StateGetObject(propertiesKey(tokenId))
+	if val == nil {
+		return ""
+	}
+	return *val
+}
+
+// setTokenProperties stores raw JSON properties for a token ID.
+func setTokenProperties(tokenId, properties string) {
+	sdk.StateSetObject(propertiesKey(tokenId), properties)
+}
+
+// ===================================
 // Contract Properties (from state)
 // ===================================
 

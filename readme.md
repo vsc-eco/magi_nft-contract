@@ -34,6 +34,7 @@ With permanent burn tracking:
 - **Soulbound Tokens**: Non-transferable tokens for badges, credentials, memberships
 - **Batch Operations**: Efficient batch minting, burning, and transfers
 - **Operator Approval**: Approve operators to manage all your tokens
+- **Token Properties**: Attach arbitrary JSON metadata to tokens at mint time
 - **Custom URIs**: Set individual URIs per token or use baseUri fallback
 - **Mintable**: Owner can mint single or batch tokens
 - **Burnable**: Owner can burn single or batch tokens
@@ -71,6 +72,7 @@ With permanent burn tracking:
 | `maxSupply` | Custom |
 | `trackMinted` / `totalMinted` | Custom |
 | `soulbound` / `isSoulbound` | Inspired by EIP-5192 |
+| `setProperties` / `getProperties` | Custom |
 | `setURI` / `setBaseURI` | Custom |
 | `getInfo` | Custom |
 
@@ -176,6 +178,63 @@ Or mint directly to recipients:
 | Recipient transfers | ✅ Supported | ❌ Blocked |
 | Burn | ✅ Supported | ✅ Supported |
 
+## Token Properties
+
+Each token can have arbitrary JSON properties attached to it. Properties are set during the first mint and can be updated later by the contract owner.
+
+### Setting Properties at Mint
+
+Include `properties` in the mint payload (any valid JSON value):
+
+```json
+{"to": "hive:collector", "id": "art-001", "amount": 1, "maxSupply": 1, "properties": {"rarity": "legendary", "power": 42}, "data": ""}
+```
+
+Properties can be any valid JSON — objects, arrays, strings, numbers, or booleans:
+
+```json
+{"to": "hive:collector", "id": "tag-001", "amount": 1, "maxSupply": 1, "properties": "hello, world", "data": ""}
+```
+
+### Batch Minting with Properties
+
+```json
+{
+  "to": "hive:owner",
+  "ids": ["sword", "shield"],
+  "amounts": [1, 1],
+  "maxSupplies": [1, 1],
+  "properties": [{"damage": 50}, {"defense": 30}],
+  "data": ""
+}
+```
+
+### Updating Properties
+
+The contract owner can update properties after mint:
+
+```json
+{"id": "art-001", "properties": {"rarity": "legendary", "power": 99, "enchanted": true}}
+```
+
+### Reading Properties
+
+Anyone can query token properties:
+
+```json
+{"id": "art-001"}
+```
+
+Returns `{"properties": ...}` with the stored JSON, or `{"properties": null}` if no properties are set.
+
+### Properties Rules
+- Properties can only be set on the **first mint** of a token (like maxSupply and soulbound)
+- Subsequent mints of the same token ignore the `properties` field
+- The contract **owner** can update properties at any time via `setProperties`
+- Anyone can read properties via `getProperties`
+- No length limitations (gas cost is the natural limit)
+- Any valid JSON value is accepted
+
 ## Functions
 
 ### Actions (State-Changing)
@@ -183,13 +242,14 @@ Or mint directly to recipients:
 | Function               | Payload                                                        | Access |
 |------------------------|----------------------------------------------------------------|--------|
 | `init`                 | `{"name": string, "symbol": string, "baseUri": string, "trackMinted": bool}` | ContractOwner |
-| `mint`                 | `{"to": string, "id": string, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "data": string}` | Owner |
-| `mintBatch`            | `{"to": string, "ids": []string, "amounts": []uint64, "maxSupplies": []uint64, "soulbound": []bool, "data": string}` | Owner |
+| `mint`                 | `{"to": string, "id": string, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "properties": any, "data": string}` | Owner |
+| `mintBatch`            | `{"to": string, "ids": []string, "amounts": []uint64, "maxSupplies": []uint64, "soulbound": []bool, "properties": []any, "data": string}` | Owner |
 | `burn`                 | `{"from": string, "id": string, "amount": uint64}`             | Owner |
 | `burnBatch`            | `{"from": string, "ids": []string, "amounts": []uint64}`       | Owner |
 | `safeTransferFrom`     | `{"from": string, "to": string, "id": string, "amount": uint64, "data": string}` | Owner/Operator |
 | `safeBatchTransferFrom`| `{"from": string, "to": string, "ids": []string, "amounts": []uint64, "data": string}` | Owner/Operator |
 | `setApprovalForAll`    | `{"operator": string, "approved": bool}`                       | Any |
+| `setProperties`        | `{"id": string, "properties": any}`                            | Owner |
 | `setURI`               | `{"id": string, "uri": string}`                                | Owner |
 | `setBaseURI`           | `{"baseUri": string}`                                          | Owner |
 | `pause`                | -                                                              | Owner |
@@ -207,6 +267,7 @@ Or mint directly to recipients:
 | `totalMinted`      | `{"id": string}`                             | `{"totalMinted": uint64}`    |
 | `exists`           | `{"id": string}`                             | `{"exists": bool}`           |
 | `isSoulbound`      | `{"id": string}`                             | `{"soulbound": bool}`        |
+| `getProperties`    | `{"id": string}`                             | `{"properties": any\|null}`  |
 | `isApprovedForAll` | `{"account": string, "operator": string}`    | `{"approved": bool}`         |
 | `uri`              | `{"id": string}`                             | `{"uri": string}`            |
 | `getOwner`         | -                                            | `{"owner": string}`          |
@@ -331,8 +392,22 @@ magi_nft/
 │   └── events.go          # Event emission
 ├── sdk/                   # VSC SDK bindings
 ├── test/
-│   ├── basic_test.go      # ERC-1155 tests
 │   ├── helpers_test.go    # Test utilities
+│   ├── init_test.go       # Initialization tests
+│   ├── mint_test.go       # Mint/MintBatch tests
+│   ├── burn_test.go       # Burn/BurnBatch tests
+│   ├── transfer_test.go   # Transfer tests
+│   ├── balance_test.go    # Balance query tests
+│   ├── supply_test.go     # Supply management tests
+│   ├── approval_test.go   # Operator approval tests
+│   ├── uri_test.go        # URI management tests
+│   ├── soulbound_test.go  # Soulbound token tests
+│   ├── properties_test.go # Token properties tests
+│   ├── trackminted_test.go# Track minted tests
+│   ├── admin_test.go      # Admin/ownership tests
+│   ├── lifecycle_test.go  # Lifecycle tests
+│   ├── erc165_test.go     # ERC-165 interface tests
+│   ├── benchmark_test.go  # RC consumption benchmark
 │   └── artifacts/         # Compiled WASM
 └── readme.md
 ```
@@ -350,8 +425,30 @@ magi_nft/
 | setBaseURI             | 230-360 |
 | burnBatch              | 245     |
 | safeTransferFrom       | 290-320 |
+| setProperties          | 300-400 |
 | mint                   | 360-400 |
 | mintBatch              | 450+    |
 | safeBatchTransferFrom  | 430+    |
 | setURI                 | 855     |
 | init                   | 1313    |
+
+## Benchmark: Real-World Scenario
+
+RC consumption for a realistic NFT workflow (see `test/benchmark_test.go`):
+
+| Step | RC (1000 = 1 HBD in the wallet) |
+|------|---:|
+| Init contract | 1,313 |
+| Mint 100 unique NFTs with basic properties (2 batches of 50) — **total** | 107,776 |
+| Mint 100 unique NFTs with basic properties (2 batches of 50) — **avg per batch** | 53,888 |
+| Mint 10,000 editions of 1 NFT with basic properties | 1,783 |
+| Transfer 10 unique NFTs (single) — **total** | 3,080 |
+| Transfer 10 unique NFTs (single) — **avg per transfer** | 308 |
+| Transfer 50 unique NFTs (batch) | 6,994 |
+| Transfer 500 editions | 401 |
+| Transfer 1,000 editions | 407 |
+| Burn 5 unique NFTs (single) — **total** | 1,085 |
+| Burn 5 unique NFTs (single) — **avg per burn** | 217 |
+| Burn 20 unique NFTs (batch) | 1,767 |
+| Burn 100 editions | 269 |
+| Burn 1,000 editions | 268 |

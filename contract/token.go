@@ -25,12 +25,12 @@ func Init(payload *string) *string {
 	}
 
 	// Only contract owner can initialize
-	env := sdk.GetEnv()
+	owner := sdk.GetEnvKey("contract.owner")
 	caller := sdk.GetEnvKey("msg.sender")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
-	if *caller != env.ContractOwner {
+	if *caller != *owner {
 		sdk.Abort("Only contract owner can initialize")
 	}
 
@@ -63,9 +63,9 @@ func Init(payload *string) *string {
 
 	// Initialize contract state
 	sdk.StateSetObject("isInit", "1")
-	sdk.StateSetObject("owner", env.ContractOwner)
+	sdk.StateSetObject("owner", *owner)
 
-	emitInit(env.ContractOwner, p.Name, p.Symbol, p.BaseURI)
+	emitInit(*owner, p.Name, p.Symbol, p.BaseURI)
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
@@ -229,8 +229,9 @@ func SetApprovalForAll(payload *string) *string {
 // ===================================
 
 // Mint creates new tokens and assigns them to an address.
-// Payload: {"to": "hive:recipient", "id": "1", "amount": 1, "maxSupply": 100, "data": ""}
+// Payload: {"to": "hive:recipient", "id": "1", "amount": 1, "maxSupply": 100, "properties": {"color": "red"}, "data": ""}
 // maxSupply is required on first mint (1 = unique, >1 = editioned), optional on subsequent mints.
+// properties is optional arbitrary JSON, set on first mint only.
 // Only the contract owner can mint.
 //
 //go:wasmexport mint
@@ -276,6 +277,10 @@ func Mint(payload *string) *string {
 		if p.Soulbound {
 			setSoulbound(p.Id)
 		}
+		// Set properties on first mint if provided
+		if p.Properties != "" {
+			setTokenProperties(p.Id, p.Properties)
+		}
 	} else {
 		// Subsequent mint - use existing maxSupply, but validate if provided
 		if p.MaxSupply != 0 && p.MaxSupply != existingMax {
@@ -309,8 +314,9 @@ func Mint(payload *string) *string {
 }
 
 // MintBatch creates multiple token types and assigns them to an address.
-// Payload: {"to": "hive:recipient", "ids": ["1", "2"], "amounts": [1, 5], "maxSupplies": [1, 100], "data": ""}
+// Payload: {"to": "hive:recipient", "ids": ["1", "2"], "amounts": [1, 5], "maxSupplies": [1, 100], "properties": [{"color": "red"}, {"size": 42}], "data": ""}
 // maxSupplies required on first mint per token (1 = unique, >1 = editioned), optional/omittable for existing tokens.
+// properties is optional per-token arbitrary JSON array, set on first mint only.
 // Only the contract owner can mint.
 //
 //go:wasmexport mintBatch
@@ -362,6 +368,12 @@ func MintBatch(payload *string) *string {
 			payloadSoulbound = p.Soulbound[i]
 		}
 
+		// Get properties from payload (empty if not provided)
+		var payloadProperties string
+		if i < len(p.Properties) {
+			payloadProperties = p.Properties[i]
+		}
+
 		// Check/set max supply for this token
 		existingMax := getMaxSupply(p.Ids[i])
 		var maxSupply uint64
@@ -375,6 +387,10 @@ func MintBatch(payload *string) *string {
 			// Set soulbound on first mint if requested
 			if payloadSoulbound {
 				setSoulbound(p.Ids[i])
+			}
+			// Set properties on first mint if provided
+			if payloadProperties != "" {
+				setTokenProperties(p.Ids[i], payloadProperties)
 			}
 		} else {
 			// Subsequent mint - use existing maxSupply, but validate if provided
@@ -910,6 +926,68 @@ func IsSoulbound(payload *string) *string {
 	}
 
 	return jsonResponse(IsSoulboundResponse{Soulbound: isSoulbound(p.Id)})
+}
+
+// ===================================
+// Token Properties Management
+// ===================================
+
+// SetProperties sets or updates the properties for a token ID.
+// Payload: {"id": "1", "properties": {"color": "red", "rarity": "legendary"}}
+// Only the contract owner can set properties.
+//
+//go:wasmexport setProperties
+func SetProperties(payload *string) *string {
+	assertInit()
+	_, isOwner := getOwner()
+	if !isOwner {
+		sdk.Abort("Must be owner to set properties")
+	}
+	if payload == nil || *payload == "" {
+		sdk.Abort("Payload required")
+	}
+
+	var p SetPropertiesPayload
+	r := jlexer.Lexer{Data: []byte(*payload)}
+	p.UnmarshalTinyJSON(&r)
+	if r.Error() != nil {
+		sdk.Abort("Invalid payload")
+	}
+
+	if p.Id == "" {
+		sdk.Abort("Token ID required")
+	}
+	if p.Properties == "" {
+		sdk.Abort("Properties required")
+	}
+
+	setTokenProperties(p.Id, p.Properties)
+	return jsonResponse(SuccessResponse{Success: true})
+}
+
+// GetProperties returns the properties for a token ID.
+// Payload: {"id": "1"}
+//
+//go:wasmexport getProperties
+func GetProperties(payload *string) *string {
+	assertInit()
+	if payload == nil || *payload == "" {
+		sdk.Abort("Payload required")
+	}
+
+	var p GetPropertiesPayload
+	r := jlexer.Lexer{Data: []byte(*payload)}
+	p.UnmarshalTinyJSON(&r)
+	if r.Error() != nil {
+		sdk.Abort("Invalid payload")
+	}
+
+	if p.Id == "" {
+		sdk.Abort("Token ID required")
+	}
+
+	props := getTokenProperties(p.Id)
+	return jsonResponse(PropertiesResponse{Properties: props})
 }
 
 // ===================================
