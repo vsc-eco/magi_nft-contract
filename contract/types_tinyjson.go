@@ -473,6 +473,8 @@ func (v *MintPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 			v.MaxSupply = uint64(in.Uint64())
 		case "soulbound":
 			v.Soulbound = bool(in.Bool())
+		case "properties":
+			v.Properties = string(in.Raw())
 		case "data":
 			v.Data = string(in.String())
 		default:
@@ -498,6 +500,10 @@ func (v MintPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.Uint64(v.MaxSupply)
 	out.RawString(`,"soulbound":`)
 	out.Bool(v.Soulbound)
+	if v.Properties != "" {
+		out.RawString(`,"properties":`)
+		out.Raw([]byte(v.Properties), nil)
+	}
 	out.RawString(`,"data":`)
 	out.String(v.Data)
 	out.RawByte('}')
@@ -560,6 +566,14 @@ func (v *MintBatchPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 				in.WantComma()
 			}
 			in.Delim(']')
+		case "properties":
+			in.Delim('[')
+			v.Properties = make([]string, 0)
+			for !in.IsDelim(']') {
+				v.Properties = append(v.Properties, string(in.Raw()))
+				in.WantComma()
+			}
+			in.Delim(']')
 		case "data":
 			v.Data = string(in.String())
 		default:
@@ -613,6 +627,17 @@ func (v MintBatchPayload) MarshalTinyJSON(out *jwriter.Writer) {
 		out.Bool(sb)
 	}
 	out.RawByte(']')
+	if len(v.Properties) > 0 {
+		out.RawString(`,"properties":`)
+		out.RawByte('[')
+		for i, prop := range v.Properties {
+			if i > 0 {
+				out.RawByte(',')
+			}
+			out.Raw([]byte(prop), nil)
+		}
+		out.RawByte(']')
+	}
 	out.RawString(`,"data":`)
 	out.String(v.Data)
 	out.RawByte('}')
@@ -1240,6 +1265,110 @@ func (v SuccessResponse) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"success":`)
 	out.Bool(v.Success)
+	out.RawByte('}')
+}
+
+// ===================================
+// SetPropertiesPayload
+// ===================================
+
+func (v *SetPropertiesPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "id":
+			v.Id = string(in.String())
+		case "properties":
+			v.Properties = string(in.Raw())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+
+func (v SetPropertiesPayload) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"id":`)
+	out.String(v.Id)
+	if v.Properties != "" {
+		out.RawString(`,"properties":`)
+		out.Raw([]byte(v.Properties), nil)
+	}
+	out.RawByte('}')
+}
+
+// ===================================
+// GetPropertiesPayload
+// ===================================
+
+func (v *GetPropertiesPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "id":
+			v.Id = string(in.String())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+
+func (v GetPropertiesPayload) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"id":`)
+	out.String(v.Id)
+	out.RawByte('}')
+}
+
+// PropertiesResponse
+func (v PropertiesResponse) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	if v.Properties != "" {
+		out.RawString(`"properties":`)
+		out.Raw([]byte(v.Properties), nil)
+	} else {
+		out.RawString(`"properties":null`)
+	}
 	out.RawByte('}')
 }
 

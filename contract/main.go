@@ -3,7 +3,7 @@ package main
 import "magi_nft/sdk"
 
 // ========================================
-// MAGI Token Contract (ERC-20 Based)
+// MAGI Token Contract (ERC-1155 Based)
 // ========================================
 
 func main() {
