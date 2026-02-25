@@ -475,6 +475,8 @@ func (v *MintPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 			v.Soulbound = bool(in.Bool())
 		case "properties":
 			v.Properties = string(in.Raw())
+		case "propertiesTemplate":
+			v.PropertiesTemplate = string(in.String())
 		case "data":
 			v.Data = string(in.String())
 		default:
@@ -503,6 +505,10 @@ func (v MintPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	if v.Properties != "" {
 		out.RawString(`,"properties":`)
 		out.Raw([]byte(v.Properties), nil)
+	}
+	if v.PropertiesTemplate != "" {
+		out.RawString(`,"propertiesTemplate":`)
+		out.String(v.PropertiesTemplate)
 	}
 	out.RawString(`,"data":`)
 	out.String(v.Data)
@@ -574,6 +580,8 @@ func (v *MintBatchPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 				in.WantComma()
 			}
 			in.Delim(']')
+		case "propertiesTemplate":
+			v.PropertiesTemplate = string(in.String())
 		case "data":
 			v.Data = string(in.String())
 		default:
@@ -637,6 +645,10 @@ func (v MintBatchPayload) MarshalTinyJSON(out *jwriter.Writer) {
 			out.Raw([]byte(prop), nil)
 		}
 		out.RawByte(']')
+	}
+	if v.PropertiesTemplate != "" {
+		out.RawString(`,"propertiesTemplate":`)
+		out.String(v.PropertiesTemplate)
 	}
 	out.RawString(`,"data":`)
 	out.String(v.Data)

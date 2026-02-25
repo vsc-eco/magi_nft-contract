@@ -12,7 +12,7 @@ import (
 //
 // This test simulates a realistic NFT workflow and reports RC consumption:
 // 1. Init the contract
-// 2. Mint 100 unique NFTs (1/1) with properties (in batches of 50)
+// 2. Mint 100 unique NFTs (1/1) with template properties (in batches of 50)
 // 3. Mint 1 editioned NFT with 10,000 editions and properties
 // 4. Transfer some unique NFTs
 // 5. Transfer some editions
@@ -37,7 +37,8 @@ func TestBenchmarkScenario(t *testing.T) {
 	rcLog = append(rcLog, rcEntry{"init", result.RcUsed})
 
 	// --------------------------------------------------
-	// Step 2: Mint 100 unique NFTs with properties (batches of 50)
+	// Step 2: Mint 100 unique NFTs with template properties (batches of 50)
+	// nft-0 gets explicit properties and serves as the template for all others
 	// --------------------------------------------------
 	batchSize := 50
 	totalUnique := 100
@@ -47,34 +48,40 @@ func TestBenchmarkScenario(t *testing.T) {
 		ids := make([]string, batchSize)
 		amounts := make([]uint64, batchSize)
 		maxSupplies := make([]uint64, batchSize)
-		properties := make([]map[string]any, batchSize)
 
 		for i := 0; i < batchSize; i++ {
 			idx := batch*batchSize + i
 			ids[i] = "nft-" + strconv.Itoa(idx)
 			amounts[i] = 1
 			maxSupplies[i] = 1
-			properties[i] = map[string]any{
-				"name":   "NFT #" + strconv.Itoa(idx),
-				"rarity": "common",
-				"power":  idx % 100,
-			}
 		}
 
-		payload := ToJSONRaw(map[string]any{
-			"to":          "hive:tibfox",
-			"ids":         ids,
-			"amounts":     amounts,
-			"maxSupplies": maxSupplies,
-			"properties":  properties,
-			"data":        "",
-		})
+		m := map[string]any{
+			"to":                 "hive:tibfox",
+			"ids":                ids,
+			"amounts":            amounts,
+			"maxSupplies":        maxSupplies,
+			"propertiesTemplate": "nft-0",
+			"data":               "",
+		}
 
+		// First batch: first token gets explicit properties
+		if batch == 0 {
+			props := make([]map[string]any, 1)
+			props[0] = map[string]any{
+				"name":   "Game Card",
+				"rarity": "common",
+				"power":  42,
+			}
+			m["properties"] = props
+		}
+
+		payload := ToJSONRaw(m)
 		res, _, _ := CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
 		totalMintUniqueRC += res.RcUsed
 	}
-	rcLog = append(rcLog, rcEntry{fmt.Sprintf("mintBatch 100 unique NFTs (2x50) with properties — total"), totalMintUniqueRC})
-	rcLog = append(rcLog, rcEntry{fmt.Sprintf("mintBatch 100 unique NFTs (2x50) with properties — avg per batch"), totalMintUniqueRC / int64(totalUnique/batchSize)})
+	rcLog = append(rcLog, rcEntry{"mintBatch 100 unique NFTs (2x50) with template — total", totalMintUniqueRC})
+	rcLog = append(rcLog, rcEntry{"mintBatch 100 unique NFTs (2x50) with template — avg per batch", totalMintUniqueRC / int64(totalUnique/batchSize)})
 
 	// --------------------------------------------------
 	// Step 3: Mint 1 editioned NFT with 10,000 editions and properties
@@ -85,9 +92,10 @@ func TestBenchmarkScenario(t *testing.T) {
 
 	// --------------------------------------------------
 	// Step 4: Transfer some unique NFTs (10 single transfers + 1 batch of 50)
+	// Note: nft-0 is a template and cannot be transferred, so start from nft-1
 	// --------------------------------------------------
 	var totalTransferSingleRC int64
-	for i := 0; i < 10; i++ {
+	for i := 1; i <= 10; i++ {
 		payload := ToJSONRaw(map[string]any{
 			"from":   "hive:tibfox",
 			"to":     "hive:collector",
@@ -101,11 +109,11 @@ func TestBenchmarkScenario(t *testing.T) {
 	rcLog = append(rcLog, rcEntry{"safeTransferFrom 10 unique NFTs — total", totalTransferSingleRC})
 	rcLog = append(rcLog, rcEntry{"safeTransferFrom 10 unique NFTs — avg per transfer", totalTransferSingleRC / 10})
 
-	// Batch transfer 50 unique NFTs (nft-10 to nft-59, since 0-9 already transferred)
+	// Batch transfer 50 unique NFTs (nft-11 to nft-60, since 1-10 already transferred)
 	batchTransferIds := make([]string, 50)
 	batchTransferAmounts := make([]uint64, 50)
 	for i := 0; i < 50; i++ {
-		batchTransferIds[i] = "nft-" + strconv.Itoa(10+i)
+		batchTransferIds[i] = "nft-" + strconv.Itoa(11+i)
 		batchTransferAmounts[i] = 1
 	}
 	batchTransferPayload := ToJSONRaw(map[string]any{
@@ -144,12 +152,12 @@ func TestBenchmarkScenario(t *testing.T) {
 	// --------------------------------------------------
 	// Step 6: Burn some unique NFTs (5 single burns + 1 batch of 20)
 	// --------------------------------------------------
-	// nft-60 to nft-64 (still owned by tibfox)
+	// nft-61 to nft-65 (still owned by tibfox)
 	var totalBurnSingleRC int64
 	for i := 0; i < 5; i++ {
 		payload := ToJSONRaw(map[string]any{
 			"from":   "hive:tibfox",
-			"id":     "nft-" + strconv.Itoa(60+i),
+			"id":     "nft-" + strconv.Itoa(61+i),
 			"amount": 1,
 		})
 		res, _, _ := CallContract(t, ct, "burn", payload, nil, ownerAddress, true, maxGas, "")
@@ -158,11 +166,11 @@ func TestBenchmarkScenario(t *testing.T) {
 	rcLog = append(rcLog, rcEntry{"burn 5 unique NFTs — total", totalBurnSingleRC})
 	rcLog = append(rcLog, rcEntry{"burn 5 unique NFTs — avg per burn", totalBurnSingleRC / 5})
 
-	// Batch burn 20 unique NFTs (nft-65 to nft-84)
+	// Batch burn 20 unique NFTs (nft-66 to nft-85)
 	batchBurnIds := make([]string, 20)
 	batchBurnAmounts := make([]uint64, 20)
 	for i := 0; i < 20; i++ {
-		batchBurnIds[i] = "nft-" + strconv.Itoa(65+i)
+		batchBurnIds[i] = "nft-" + strconv.Itoa(66+i)
 		batchBurnAmounts[i] = 1
 	}
 	batchBurnPayload := ToJSONRaw(map[string]any{
@@ -199,7 +207,7 @@ func TestBenchmarkScenario(t *testing.T) {
 	fmt.Println("RC CONSUMPTION SUMMARY")
 	fmt.Println("========================================")
 	for _, entry := range rcLog {
-		fmt.Printf("%-60s %d RC\n", entry.Step, entry.RC)
+		fmt.Printf("%-65s %d RC\n", entry.Step, entry.RC)
 	}
 	fmt.Println("========================================")
 }

@@ -35,6 +35,7 @@ With permanent burn tracking:
 - **Batch Operations**: Efficient batch minting, burning, and transfers
 - **Operator Approval**: Approve operators to manage all your tokens
 - **Token Properties**: Attach arbitrary JSON metadata to tokens at mint time
+- **Properties Templates**: Share properties across tokens with template inheritance (saves ~84% RC)
 - **Custom URIs**: Set individual URIs per token or use baseUri fallback
 - **Mintable**: Owner can mint single or batch tokens
 - **Burnable**: Owner can burn single or batch tokens
@@ -73,6 +74,7 @@ With permanent burn tracking:
 | `trackMinted` / `totalMinted` | Custom |
 | `soulbound` / `isSoulbound` | Inspired by EIP-5192 |
 | `setProperties` / `getProperties` | Custom |
+| `propertiesTemplate` (on mint) | Custom |
 | `setURI` / `setBaseURI` | Custom |
 | `getInfo` | Custom |
 
@@ -235,6 +237,59 @@ Returns `{"properties": ...}` with the stored JSON, or `{"properties": null}` if
 - No length limitations (gas cost is the natural limit)
 - Any valid JSON value is accepted
 
+### Properties Templates
+
+Instead of writing properties to every token individually, you can designate one token as a **template** and have other tokens inherit its properties. This saves ~84% RC when minting large batches of tokens with identical properties that might change later on (like statistics for game items for example). If the properties never change we highly recommend you to use editions instead.
+
+#### How It Works
+
+1. Mint a batch with `propertiesTemplate` pointing to one token ID
+2. The first token gets explicit `properties`, the rest inherit from the template
+3. `getProperties` on any child returns the template's properties
+4. `setProperties` on a child overrides the template for that token only
+5. `setProperties` on the template propagates to all children that haven't been overridden
+
+#### Example: Minting 100 Game Cards
+
+```json
+{
+  "to": "hive:owner",
+  "ids": ["card-0", "card-1", "card-2", "..."],
+  "amounts": [1, 1, 1, "..."],
+  "maxSupplies": [1, 1, 1, "..."],
+  "properties": [{"name": "Fire Mage", "hp": 80, "attack": 70}],
+  "propertiesTemplate": "card-0",
+  "data": ""
+}
+```
+
+- `card-0` stores properties directly and becomes the template
+- `card-1`, `card-2`, ... all reference `card-0` and inherit its properties
+- Only 1 state write for properties instead of 100
+
+#### Updating Individual Cards
+
+```json
+{"id": "card-5", "properties": {"name": "Fire Mage", "hp": 60, "attack": 90}}
+```
+
+Now `card-5` has custom stats, while all other cards still inherit from `card-0`.
+
+#### Single Mint with Template
+
+```json
+{"to": "hive:owner", "id": "card-101", "amount": 1, "maxSupply": 1, "propertiesTemplate": "card-0", "data": ""}
+```
+
+#### Template Rules
+- Template reference is set on **first mint** only (like properties)
+- If both `properties` and `propertiesTemplate` are provided, explicit `properties` wins
+- Template tokens are **non-transferable** (they serve as shared metadata anchors)
+- Template tokens can still be burned
+- `setProperties` on a child overrides the template for that token
+- Updating the template's properties via `setProperties` affects all children immediately
+- Only one level of template indirection is supported (no chaining)
+
 ## Functions
 
 ### Actions (State-Changing)
@@ -242,8 +297,8 @@ Returns `{"properties": ...}` with the stored JSON, or `{"properties": null}` if
 | Function               | Payload                                                        | Access |
 |------------------------|----------------------------------------------------------------|--------|
 | `init`                 | `{"name": string, "symbol": string, "baseUri": string, "trackMinted": bool}` | ContractOwner |
-| `mint`                 | `{"to": string, "id": string, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "properties": any, "data": string}` | Owner |
-| `mintBatch`            | `{"to": string, "ids": []string, "amounts": []uint64, "maxSupplies": []uint64, "soulbound": []bool, "properties": []any, "data": string}` | Owner |
+| `mint`                 | `{"to": string, "id": string, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "properties": any, "propertiesTemplate": string, "data": string}` | Owner |
+| `mintBatch`            | `{"to": string, "ids": []string, "amounts": []uint64, "maxSupplies": []uint64, "soulbound": []bool, "properties": []any, "propertiesTemplate": string, "data": string}` | Owner |
 | `burn`                 | `{"from": string, "id": string, "amount": uint64}`             | Owner |
 | `burnBatch`            | `{"from": string, "ids": []string, "amounts": []uint64}`       | Owner |
 | `safeTransferFrom`     | `{"from": string, "to": string, "id": string, "amount": uint64, "data": string}` | Owner/Operator |
@@ -424,7 +479,7 @@ magi_nft/
 | changeOwner            | 205     |
 | setBaseURI             | 230-360 |
 | burnBatch              | 245     |
-| safeTransferFrom       | 290-320 |
+| safeTransferFrom       | 320-420 |
 | setProperties          | 300-400 |
 | mint                   | 360-400 |
 | mintBatch              | 450+    |
@@ -434,19 +489,19 @@ magi_nft/
 
 ## Benchmark: Real-World Scenario
 
-RC consumption for a realistic NFT workflow (see `test/benchmark_test.go`):
+RC consumption for a realistic NFT workflow using template properties (see `test/benchmark_test.go`):
 
 | Step | RC (1000 = 1 HBD in the wallet) |
 |------|---:|
 | Init contract | 1,313 |
-| Mint 100 unique NFTs with basic properties (2 batches of 50) — **total** | 107,776 |
-| Mint 100 unique NFTs with basic properties (2 batches of 50) — **avg per batch** | 53,888 |
-| Mint 10,000 editions of 1 NFT with basic properties | 1,783 |
-| Transfer 10 unique NFTs (single) — **total** | 3,080 |
-| Transfer 10 unique NFTs (single) — **avg per transfer** | 308 |
-| Transfer 50 unique NFTs (batch) | 6,994 |
-| Transfer 500 editions | 401 |
-| Transfer 1,000 editions | 407 |
+| Mint 100 unique NFTs with template properties (2 batches of 50) — **total** | 29,144 |
+| Mint 100 unique NFTs with template properties (2 batches of 50) — **avg per batch** | 14,572 |
+| Mint 10,000 editions of 1 NFT with properties | 1,783 |
+| Transfer 10 unique NFTs (single) — **total** | 3,217 |
+| Transfer 10 unique NFTs (single) — **avg per transfer** | 321 |
+| Transfer 50 unique NFTs (batch) | 7,694 |
+| Transfer 500 editions | 421 |
+| Transfer 1,000 editions | 427 |
 | Burn 5 unique NFTs (single) — **total** | 1,085 |
 | Burn 5 unique NFTs (single) — **avg per burn** | 217 |
 | Burn 20 unique NFTs (batch) | 1,767 |

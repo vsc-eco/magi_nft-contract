@@ -60,24 +60,26 @@ type IsApprovedForAllPayload struct {
 
 // MintPayload for mint action
 type MintPayload struct {
-	To         string `json:"to"`
-	Id         string `json:"id"`
-	Amount     uint64 `json:"amount"`
-	MaxSupply  uint64 `json:"maxSupply"`  // Required: 1 = unique, >1 = editioned
-	Soulbound  bool   `json:"soulbound"`  // Optional: if true, token cannot be transferred
-	Properties string `json:"properties"` // Optional: arbitrary JSON stored as raw string
-	Data       string `json:"data"`
+	To                 string `json:"to"`
+	Id                 string `json:"id"`
+	Amount             uint64 `json:"amount"`
+	MaxSupply          uint64 `json:"maxSupply"`          // Required: 1 = unique, >1 = editioned
+	Soulbound          bool   `json:"soulbound"`          // Optional: if true, token cannot be transferred
+	Properties         string `json:"properties"`         // Optional: arbitrary JSON stored as raw string
+	PropertiesTemplate string `json:"propertiesTemplate"` // Optional: token ID to inherit properties from
+	Data               string `json:"data"`
 }
 
 // MintBatchPayload for mintBatch action
 type MintBatchPayload struct {
-	To          string   `json:"to"`
-	Ids         []string `json:"ids"`
-	Amounts     []uint64 `json:"amounts"`
-	MaxSupplies []uint64 `json:"maxSupplies"` // Required: per-token max supply
-	Soulbound   []bool   `json:"soulbound"`   // Optional: per-token soulbound flags
-	Properties  []string `json:"properties"`  // Optional: per-token arbitrary JSON properties
-	Data        string   `json:"data"`
+	To                 string   `json:"to"`
+	Ids                []string `json:"ids"`
+	Amounts            []uint64 `json:"amounts"`
+	MaxSupplies        []uint64 `json:"maxSupplies"`       // Required: per-token max supply
+	Soulbound          []bool   `json:"soulbound"`         // Optional: per-token soulbound flags
+	Properties         []string `json:"properties"`        // Optional: per-token arbitrary JSON properties
+	PropertiesTemplate string   `json:"propertiesTemplate"` // Optional: token ID to inherit properties from (tokens without explicit properties get this template)
+	Data               string   `json:"data"`
 }
 
 // TotalSupplyPayload for totalSupply query
