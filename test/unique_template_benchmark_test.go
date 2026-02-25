@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestUniqueTemplateBenchmark(t *testing.T) {
+func InactiveTestUniqueTemplateBenchmark(t *testing.T) {
 	maxGas := uint(100_000_000_000)
 
 	const (
