@@ -39,7 +39,7 @@ func getOwner() (string, bool) {
 	if *i == "" {
 		return "", false
 	}
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		return *i, false
 	}

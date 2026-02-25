@@ -26,7 +26,7 @@ func Init(payload *string) *string {
 
 	// Only contract owner can initialize
 	owner := sdk.GetEnvKey("contract.owner")
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -102,7 +102,7 @@ func SafeTransferFrom(payload *string) *string {
 		sdk.Abort("Token ID required")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -159,7 +159,7 @@ func SafeBatchTransferFrom(payload *string) *string {
 		sdk.Abort("IDs and amounts length mismatch")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -209,7 +209,7 @@ func SetApprovalForAll(payload *string) *string {
 		sdk.Abort("Operator required")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -458,7 +458,7 @@ func Burn(payload *string) *string {
 		sdk.Abort("Amount must be greater than 0")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -504,7 +504,7 @@ func BurnBatch(payload *string) *string {
 		sdk.Abort("IDs and amounts length mismatch")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
