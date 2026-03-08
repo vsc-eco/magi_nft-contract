@@ -18,7 +18,7 @@ func TestInitWithTrackMinted(t *testing.T) {
 	payload := []byte(`{"name":"Magi NFT","symbol":"MNFT","baseUri":"https://api.magi.network/metadata/","trackMinted":true}`)
 	CallContract(t, ct, "init", payload, nil, ownerAddress, true, uint(150_000_000), "")
 
-	result, _, _ := CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	expected := `{"name":"Magi NFT","symbol":"MNFT","baseUri":"https://api.magi.network/metadata/","trackMinted":true}`
 	if result.Ret != expected {
 		t.Errorf("Expected %s, got %s", expected, result.Ret)
@@ -51,7 +51,7 @@ func TestInitFailsWithEmptySymbol(t *testing.T) {
 func TestGetInfo(t *testing.T) {
 	ct := SetupContractTest()
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
-	result, _, _ := CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	expected := `{"name":"Magi NFT","symbol":"MNFT","baseUri":"https://api.magi.network/metadata/","trackMinted":false}`
 	if result.Ret != expected {
 		t.Errorf("Expected %s, got %s", expected, result.Ret)

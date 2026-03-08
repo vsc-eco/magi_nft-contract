@@ -14,14 +14,14 @@ func TestMintSoulboundToken(t *testing.T) {
 
 	// Mint a soulbound token
 	mintPayload := []byte(`{"to":"hive:tibfox","id":"soulbound-1","amount":1,"maxSupply":1,"soulbound":true,"data":""}`)
-	result, _, _ := CallContract(t, ct, "mint", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "mint", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected success, got %s", result.Ret)
 	}
 
 	// Verify token was minted
 	balPayload := []byte(`{"account":"hive:tibfox","id":"soulbound-1"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":1}` {
 		t.Errorf("Expected balance 1, got %s", balResult.Ret)
 	}
@@ -50,14 +50,14 @@ func TestOwnerCanTransferSoulboundToken(t *testing.T) {
 
 	// Owner can transfer (distribute) soulbound tokens
 	transferPayload := []byte(`{"from":"hive:tibfox","to":"hive:recipient","id":"soulbound-dist","amount":2,"data":""}`)
-	result, _, _ := CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected owner to transfer soulbound token, got %s", result.Ret)
 	}
 
 	// Verify recipient got the tokens
 	balPayload := []byte(`{"account":"hive:recipient","id":"soulbound-dist"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":2}` {
 		t.Errorf("Expected balance 2, got %s", balResult.Ret)
 	}
@@ -77,14 +77,14 @@ func TestSoulboundTokenCanBeBurned(t *testing.T) {
 
 	// Burn should succeed
 	burnPayload := []byte(`{"from":"hive:tibfox","id":"soulbound-burn","amount":1}`)
-	result, _, _ := CallContract(t, ct, "burn", burnPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "burn", burnPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected burn success, got %s", result.Ret)
 	}
 
 	// Verify balance is 0
 	balPayload := []byte(`{"account":"hive:tibfox","id":"soulbound-burn"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":0}` {
 		t.Errorf("Expected balance 0 after burn, got %s", balResult.Ret)
 	}
@@ -120,14 +120,14 @@ func TestOwnerCanBatchTransferSoulbound(t *testing.T) {
 
 	// Owner can batch transfer soulbound tokens (for distribution)
 	transferPayload := []byte(`{"from":"hive:tibfox","to":"hive:recipient","ids":["sb-batch-1","sb-batch-2"],"amounts":[2,3],"data":""}`)
-	result, _, _ := CallContract(t, ct, "safeBatchTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "safeBatchTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected owner batch transfer to succeed, got %s", result.Ret)
 	}
 
 	// Verify balances
 	bal1 := []byte(`{"account":"hive:recipient","id":"sb-batch-1"}`)
-	bal1Result, _, _ := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
+	bal1Result := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal1Result.Ret != `{"balance":2}` {
 		t.Errorf("Expected balance 2, got %s", bal1Result.Ret)
 	}
@@ -151,21 +151,21 @@ func TestIsSoulboundQuery(t *testing.T) {
 
 	// Query soulbound status
 	sbPayload := []byte(`{"id":"sb-query"}`)
-	sbResult, _, _ := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	sbResult := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if sbResult.Ret != `{"soulbound":true}` {
 		t.Errorf("Expected soulbound true, got %s", sbResult.Ret)
 	}
 
 	// Query regular token
 	regPayload := []byte(`{"id":"regular-query"}`)
-	regResult, _, _ := CallContract(t, ct, "isSoulbound", regPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	regResult := CallContract(t, ct, "isSoulbound", regPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if regResult.Ret != `{"soulbound":false}` {
 		t.Errorf("Expected soulbound false, got %s", regResult.Ret)
 	}
 
 	// Query non-existent token
 	nonPayload := []byte(`{"id":"nonexistent"}`)
-	nonResult, _, _ := CallContract(t, ct, "isSoulbound", nonPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	nonResult := CallContract(t, ct, "isSoulbound", nonPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if nonResult.Ret != `{"soulbound":false}` {
 		t.Errorf("Expected soulbound false for non-existent, got %s", nonResult.Ret)
 	}
@@ -185,14 +185,14 @@ func TestSoulboundOnlySetOnFirstMint(t *testing.T) {
 
 	// Token should NOT be soulbound (was set on first mint without soulbound)
 	sbPayload := []byte(`{"id":"first-mint"}`)
-	sbResult, _, _ := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	sbResult := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if sbResult.Ret != `{"soulbound":false}` {
 		t.Errorf("Expected soulbound false (set on first mint), got %s", sbResult.Ret)
 	}
 
 	// Transfer should work since it's not soulbound
 	transferPayload := []byte(`{"from":"hive:tibfox","to":"hive:other","id":"first-mint","amount":1,"data":""}`)
-	result, _, _ := CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected transfer success for non-soulbound token, got %s", result.Ret)
 	}
@@ -208,20 +208,20 @@ func TestNonSoulboundTokenCanBeTransferred(t *testing.T) {
 
 	// Transfer should succeed
 	transferPayload := []byte(`{"from":"hive:tibfox","to":"hive:other","id":"transferable","amount":5,"data":""}`)
-	result, _, _ := CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected transfer success, got %s", result.Ret)
 	}
 
 	// Verify balances
 	bal1 := []byte(`{"account":"hive:tibfox","id":"transferable"}`)
-	bal1Result, _, _ := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
+	bal1Result := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal1Result.Ret != `{"balance":5}` {
 		t.Errorf("Expected balance 5, got %s", bal1Result.Ret)
 	}
 
 	bal2 := []byte(`{"account":"hive:other","id":"transferable"}`)
-	bal2Result, _, _ := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
+	bal2Result := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal2Result.Ret != `{"balance":5}` {
 		t.Errorf("Expected balance 5, got %s", bal2Result.Ret)
 	}
@@ -233,34 +233,34 @@ func TestMintBatchWithSoulbound(t *testing.T) {
 
 	// Mint batch with mixed soulbound flags
 	mintPayload := []byte(`{"to":"hive:tibfox","ids":["batch-sb","batch-regular"],"amounts":[1,1],"maxSupplies":[1,100],"soulbound":[true,false],"data":""}`)
-	result, _, _ := CallContract(t, ct, "mintBatch", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "mintBatch", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected success, got %s", result.Ret)
 	}
 
 	// Verify soulbound status
 	sb1 := []byte(`{"id":"batch-sb"}`)
-	sb1Result, _, _ := CallContract(t, ct, "isSoulbound", sb1, nil, ownerAddress, true, uint(150_000_000), "")
+	sb1Result := CallContract(t, ct, "isSoulbound", sb1, nil, ownerAddress, true, uint(150_000_000), "")
 	if sb1Result.Ret != `{"soulbound":true}` {
 		t.Errorf("Expected batch-sb soulbound true, got %s", sb1Result.Ret)
 	}
 
 	sb2 := []byte(`{"id":"batch-regular"}`)
-	sb2Result, _, _ := CallContract(t, ct, "isSoulbound", sb2, nil, ownerAddress, true, uint(150_000_000), "")
+	sb2Result := CallContract(t, ct, "isSoulbound", sb2, nil, ownerAddress, true, uint(150_000_000), "")
 	if sb2Result.Ret != `{"soulbound":false}` {
 		t.Errorf("Expected batch-regular soulbound false, got %s", sb2Result.Ret)
 	}
 
 	// Owner can transfer soulbound (for distribution)
 	transferSb := []byte(`{"from":"hive:tibfox","to":"hive:other","id":"batch-sb","amount":1,"data":""}`)
-	transferSbResult, _, _ := CallContract(t, ct, "safeTransferFrom", transferSb, nil, ownerAddress, true, uint(150_000_000), "")
+	transferSbResult := CallContract(t, ct, "safeTransferFrom", transferSb, nil, ownerAddress, true, uint(150_000_000), "")
 	if transferSbResult.Ret != `{"success":true}` {
 		t.Errorf("Expected owner to transfer soulbound, got %s", transferSbResult.Ret)
 	}
 
 	// Transfer regular - should succeed
 	transferReg := []byte(`{"from":"hive:tibfox","to":"hive:other","id":"batch-regular","amount":1,"data":""}`)
-	transferRegResult, _, _ := CallContract(t, ct, "safeTransferFrom", transferReg, nil, ownerAddress, true, uint(150_000_000), "")
+	transferRegResult := CallContract(t, ct, "safeTransferFrom", transferReg, nil, ownerAddress, true, uint(150_000_000), "")
 	if transferRegResult.Ret != `{"success":true}` {
 		t.Errorf("Expected success for regular token transfer, got %s", transferRegResult.Ret)
 	}
@@ -297,20 +297,20 @@ func TestSoulboundBatchBurn(t *testing.T) {
 
 	// Batch burn should succeed
 	burnPayload := []byte(`{"from":"hive:tibfox","ids":["sb-burn1","sb-burn2"],"amounts":[3,5]}`)
-	result, _, _ := CallContract(t, ct, "burnBatch", burnPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "burnBatch", burnPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected burn batch success, got %s", result.Ret)
 	}
 
 	// Verify balances after burn
 	bal1 := []byte(`{"account":"hive:tibfox","id":"sb-burn1"}`)
-	bal1Result, _, _ := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
+	bal1Result := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal1Result.Ret != `{"balance":2}` {
 		t.Errorf("Expected balance 2, got %s", bal1Result.Ret)
 	}
 
 	bal2 := []byte(`{"account":"hive:tibfox","id":"sb-burn2"}`)
-	bal2Result, _, _ := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
+	bal2Result := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal2Result.Ret != `{"balance":5}` {
 		t.Errorf("Expected balance 5, got %s", bal2Result.Ret)
 	}
@@ -326,14 +326,14 @@ func TestSoulboundWithExplicitFalse(t *testing.T) {
 
 	// Should NOT be soulbound
 	sbPayload := []byte(`{"id":"explicit-false"}`)
-	sbResult, _, _ := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	sbResult := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if sbResult.Ret != `{"soulbound":false}` {
 		t.Errorf("Expected soulbound false, got %s", sbResult.Ret)
 	}
 
 	// Transfer should work
 	transferPayload := []byte(`{"from":"hive:tibfox","to":"hive:other","id":"explicit-false","amount":1,"data":""}`)
-	result, _, _ := CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected transfer success, got %s", result.Ret)
 	}
@@ -353,14 +353,14 @@ func TestIsSoulboundRemainsTrueAfterBurn(t *testing.T) {
 
 	// isSoulbound should still return true (property of the token type)
 	sbPayload := []byte(`{"id":"sb-after-burn"}`)
-	sbResult, _, _ := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	sbResult := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if sbResult.Ret != `{"soulbound":true}` {
 		t.Errorf("Expected soulbound true after burn, got %s", sbResult.Ret)
 	}
 
 	// Verify balance is 0
 	balPayload := []byte(`{"account":"hive:tibfox","id":"sb-after-burn"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":0}` {
 		t.Errorf("Expected balance 0, got %s", balResult.Ret)
 	}
@@ -393,27 +393,27 @@ func TestSoulboundMultipleMintsSameToken(t *testing.T) {
 
 	// Both balances should be correct
 	bal1 := []byte(`{"account":"hive:tibfox","id":"sb-multi"}`)
-	bal1Result, _, _ := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
+	bal1Result := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal1Result.Ret != `{"balance":5}` {
 		t.Errorf("Expected balance 5, got %s", bal1Result.Ret)
 	}
 
 	bal2 := []byte(`{"account":"hive:other","id":"sb-multi"}`)
-	bal2Result, _, _ := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
+	bal2Result := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal2Result.Ret != `{"balance":10}` {
 		t.Errorf("Expected balance 10, got %s", bal2Result.Ret)
 	}
 
 	// Token should still be soulbound
 	sbPayload := []byte(`{"id":"sb-multi"}`)
-	sbResult, _, _ := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	sbResult := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if sbResult.Ret != `{"soulbound":true}` {
 		t.Errorf("Expected soulbound true, got %s", sbResult.Ret)
 	}
 
 	// Owner CAN transfer soulbound tokens (for distribution)
 	transfer1 := []byte(`{"from":"hive:tibfox","to":"hive:buyer","id":"sb-multi","amount":1,"data":""}`)
-	transferResult, _, _ := CallContract(t, ct, "safeTransferFrom", transfer1, nil, ownerAddress, true, uint(150_000_000), "")
+	transferResult := CallContract(t, ct, "safeTransferFrom", transfer1, nil, ownerAddress, true, uint(150_000_000), "")
 	if transferResult.Ret != `{"success":true}` {
 		t.Errorf("Expected owner transfer to succeed, got %s", transferResult.Ret)
 	}
@@ -448,7 +448,7 @@ func TestSoulboundWithTrackMinted(t *testing.T) {
 
 	// Token should still be soulbound
 	sbPayload := []byte(`{"id":"sb-tracked"}`)
-	sbResult, _, _ := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	sbResult := CallContract(t, ct, "isSoulbound", sbPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if sbResult.Ret != `{"soulbound":true}` {
 		t.Errorf("Expected soulbound true with trackMinted, got %s", sbResult.Ret)
 	}
@@ -460,20 +460,20 @@ func TestSoulboundMintBatchWithoutSoulboundArray(t *testing.T) {
 
 	// Mint batch without soulbound array (should default to false)
 	mintPayload := []byte(`{"to":"hive:tibfox","ids":["no-sb-1","no-sb-2"],"amounts":[1,1],"maxSupplies":[1,1],"data":""}`)
-	result, _, _ := CallContract(t, ct, "mintBatch", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "mintBatch", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected success, got %s", result.Ret)
 	}
 
 	// Both should NOT be soulbound
 	sb1 := []byte(`{"id":"no-sb-1"}`)
-	sb1Result, _, _ := CallContract(t, ct, "isSoulbound", sb1, nil, ownerAddress, true, uint(150_000_000), "")
+	sb1Result := CallContract(t, ct, "isSoulbound", sb1, nil, ownerAddress, true, uint(150_000_000), "")
 	if sb1Result.Ret != `{"soulbound":false}` {
 		t.Errorf("Expected soulbound false, got %s", sb1Result.Ret)
 	}
 
 	sb2 := []byte(`{"id":"no-sb-2"}`)
-	sb2Result, _, _ := CallContract(t, ct, "isSoulbound", sb2, nil, ownerAddress, true, uint(150_000_000), "")
+	sb2Result := CallContract(t, ct, "isSoulbound", sb2, nil, ownerAddress, true, uint(150_000_000), "")
 	if sb2Result.Ret != `{"soulbound":false}` {
 		t.Errorf("Expected soulbound false, got %s", sb2Result.Ret)
 	}
@@ -492,20 +492,20 @@ func TestSoulboundBatchTransferOnlyRegularTokens(t *testing.T) {
 
 	// Batch transfer should succeed (no soulbound tokens)
 	transferPayload := []byte(`{"from":"hive:tibfox","to":"hive:other","ids":["reg-batch-1","reg-batch-2"],"amounts":[2,3],"data":""}`)
-	result, _, _ := CallContract(t, ct, "safeBatchTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "safeBatchTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected batch transfer success, got %s", result.Ret)
 	}
 
 	// Verify balances
 	bal1 := []byte(`{"account":"hive:other","id":"reg-batch-1"}`)
-	bal1Result, _, _ := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
+	bal1Result := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal1Result.Ret != `{"balance":2}` {
 		t.Errorf("Expected balance 2, got %s", bal1Result.Ret)
 	}
 
 	bal2 := []byte(`{"account":"hive:other","id":"reg-batch-2"}`)
-	bal2Result, _, _ := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
+	bal2Result := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal2Result.Ret != `{"balance":3}` {
 		t.Errorf("Expected balance 3, got %s", bal2Result.Ret)
 	}

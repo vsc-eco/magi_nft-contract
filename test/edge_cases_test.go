@@ -304,25 +304,25 @@ func TestQueriesWorkWhilePaused(t *testing.T) {
 
 	// All read-only queries should still work while paused
 	balPayload := []byte(`{"account":"hive:tibfox","id":"paused-query"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":10}` {
 		t.Errorf("Expected balance 10 while paused, got %s", balResult.Ret)
 	}
 
 	supplyPayload := []byte(`{"id":"paused-query"}`)
-	supplyResult, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	supplyResult := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if supplyResult.Ret != `{"totalSupply":10}` {
 		t.Errorf("Expected totalSupply 10 while paused, got %s", supplyResult.Ret)
 	}
 
 	maxPayload := []byte(`{"id":"paused-query"}`)
-	maxResult, _, _ := CallContract(t, ct, "maxSupply", maxPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	maxResult := CallContract(t, ct, "maxSupply", maxPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if maxResult.Ret != `{"maxSupply":100}` {
 		t.Errorf("Expected maxSupply 100 while paused, got %s", maxResult.Ret)
 	}
 
 	existsPayload := []byte(`{"id":"paused-query"}`)
-	existsResult, _, _ := CallContract(t, ct, "exists", existsPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	existsResult := CallContract(t, ct, "exists", existsPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if existsResult.Ret != `{"exists":true}` {
 		t.Errorf("Expected exists true while paused, got %s", existsResult.Ret)
 	}
@@ -331,7 +331,7 @@ func TestQueriesWorkWhilePaused(t *testing.T) {
 	CallContract(t, ct, "uri", uriPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	propsPayload := []byte(`{"id":"paused-query"}`)
-	propsResult, _, _ := CallContract(t, ct, "getProperties", propsPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	propsResult := CallContract(t, ct, "getProperties", propsPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if propsResult.Ret != `{"properties":{"color":"red"}}` {
 		t.Errorf("Expected properties while paused, got %s", propsResult.Ret)
 	}
@@ -339,7 +339,7 @@ func TestQueriesWorkWhilePaused(t *testing.T) {
 	CallContract(t, ct, "getOwner", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
 
-	pausedResult, _, _ := CallContract(t, ct, "isPaused", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	pausedResult := CallContract(t, ct, "isPaused", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	if pausedResult.Ret != `{"paused":true}` {
 		t.Errorf("Expected paused true, got %s", pausedResult.Ret)
 	}

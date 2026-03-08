@@ -33,7 +33,7 @@ func TestBenchmarkScenario(t *testing.T) {
 	// --------------------------------------------------
 	// Step 1: Init
 	// --------------------------------------------------
-	result, _, _ := CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, maxGas, "")
+	result := CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, maxGas, "")
 	rcLog = append(rcLog, rcEntry{"init", result.RcUsed})
 
 	// --------------------------------------------------
@@ -77,7 +77,7 @@ func TestBenchmarkScenario(t *testing.T) {
 		}
 
 		payload := ToJSONRaw(m)
-		res, _, _ := CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
+		res := CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
 		totalMintUniqueRC += res.RcUsed
 	}
 	rcLog = append(rcLog, rcEntry{"mintBatch 100 unique NFTs (2x50) with template — total", totalMintUniqueRC})
@@ -87,7 +87,7 @@ func TestBenchmarkScenario(t *testing.T) {
 	// Step 3: Mint 1 editioned NFT with 10,000 editions and properties
 	// --------------------------------------------------
 	editionPayload := []byte(`{"to":"hive:tibfox","id":"edition-mega","amount":10000,"maxSupply":10000,"properties":{"collection":"Mega Edition","type":"collectible","series":1},"data":""}`)
-	res, _, _ := CallContract(t, ct, "mint", editionPayload, nil, ownerAddress, true, maxGas, "")
+	res := CallContract(t, ct, "mint", editionPayload, nil, ownerAddress, true, maxGas, "")
 	rcLog = append(rcLog, rcEntry{"mint 10,000 editions with properties", res.RcUsed})
 
 	// --------------------------------------------------
@@ -103,7 +103,7 @@ func TestBenchmarkScenario(t *testing.T) {
 			"amount": 1,
 			"data":   "",
 		})
-		res, _, _ := CallContract(t, ct, "safeTransferFrom", payload, nil, ownerAddress, true, maxGas, "")
+		res := CallContract(t, ct, "safeTransferFrom", payload, nil, ownerAddress, true, maxGas, "")
 		totalTransferSingleRC += res.RcUsed
 	}
 	rcLog = append(rcLog, rcEntry{"safeTransferFrom 10 unique NFTs — total", totalTransferSingleRC})
@@ -123,7 +123,7 @@ func TestBenchmarkScenario(t *testing.T) {
 		"amounts": batchTransferAmounts,
 		"data":    "",
 	})
-	res, _, _ = CallContract(t, ct, "safeBatchTransferFrom", batchTransferPayload, nil, ownerAddress, true, maxGas, "")
+	res = CallContract(t, ct, "safeBatchTransferFrom", batchTransferPayload, nil, ownerAddress, true, maxGas, "")
 	rcLog = append(rcLog, rcEntry{"safeBatchTransferFrom 50 unique NFTs", res.RcUsed})
 
 	// --------------------------------------------------
@@ -136,7 +136,7 @@ func TestBenchmarkScenario(t *testing.T) {
 		"amount": 500,
 		"data":   "",
 	})
-	res, _, _ = CallContract(t, ct, "safeTransferFrom", editionTransferPayload, nil, ownerAddress, true, maxGas, "")
+	res = CallContract(t, ct, "safeTransferFrom", editionTransferPayload, nil, ownerAddress, true, maxGas, "")
 	rcLog = append(rcLog, rcEntry{"safeTransferFrom 500 editions", res.RcUsed})
 
 	editionTransferPayload2 := ToJSONRaw(map[string]any{
@@ -146,7 +146,7 @@ func TestBenchmarkScenario(t *testing.T) {
 		"amount": 1000,
 		"data":   "",
 	})
-	res, _, _ = CallContract(t, ct, "safeTransferFrom", editionTransferPayload2, nil, ownerAddress, true, maxGas, "")
+	res = CallContract(t, ct, "safeTransferFrom", editionTransferPayload2, nil, ownerAddress, true, maxGas, "")
 	rcLog = append(rcLog, rcEntry{"safeTransferFrom 1000 editions", res.RcUsed})
 
 	// --------------------------------------------------
@@ -160,7 +160,7 @@ func TestBenchmarkScenario(t *testing.T) {
 			"id":     "nft-" + strconv.Itoa(61+i),
 			"amount": 1,
 		})
-		res, _, _ := CallContract(t, ct, "burn", payload, nil, ownerAddress, true, maxGas, "")
+		res := CallContract(t, ct, "burn", payload, nil, ownerAddress, true, maxGas, "")
 		totalBurnSingleRC += res.RcUsed
 	}
 	rcLog = append(rcLog, rcEntry{"burn 5 unique NFTs — total", totalBurnSingleRC})
@@ -178,7 +178,7 @@ func TestBenchmarkScenario(t *testing.T) {
 		"ids":     batchBurnIds,
 		"amounts": batchBurnAmounts,
 	})
-	res, _, _ = CallContract(t, ct, "burnBatch", batchBurnPayload, nil, ownerAddress, true, maxGas, "")
+	res = CallContract(t, ct, "burnBatch", batchBurnPayload, nil, ownerAddress, true, maxGas, "")
 	rcLog = append(rcLog, rcEntry{"burnBatch 20 unique NFTs", res.RcUsed})
 
 	// --------------------------------------------------
@@ -189,7 +189,7 @@ func TestBenchmarkScenario(t *testing.T) {
 		"id":     "edition-mega",
 		"amount": 100,
 	})
-	res, _, _ = CallContract(t, ct, "burn", burnEditionPayload, nil, ownerAddress, true, maxGas, "")
+	res = CallContract(t, ct, "burn", burnEditionPayload, nil, ownerAddress, true, maxGas, "")
 	rcLog = append(rcLog, rcEntry{"burn 100 editions", res.RcUsed})
 
 	burnEditionPayload2 := ToJSONRaw(map[string]any{
@@ -197,7 +197,7 @@ func TestBenchmarkScenario(t *testing.T) {
 		"id":     "edition-mega",
 		"amount": 1000,
 	})
-	res, _, _ = CallContract(t, ct, "burn", burnEditionPayload2, nil, ownerAddress, true, maxGas, "")
+	res = CallContract(t, ct, "burn", burnEditionPayload2, nil, ownerAddress, true, maxGas, "")
 	rcLog = append(rcLog, rcEntry{"burn 1000 editions", res.RcUsed})
 
 	// --------------------------------------------------

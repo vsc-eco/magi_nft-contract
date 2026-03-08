@@ -53,7 +53,7 @@ func InactiveTestUniqueTemplateBenchmark(t *testing.T) {
 				"properties":  properties,
 				"data":        "",
 			})
-			res, _, _ := CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
+			res := CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
 			groupRC += res.RcUsed
 		}
 		totalPerToken += groupRC
@@ -105,7 +105,7 @@ func InactiveTestUniqueTemplateBenchmark(t *testing.T) {
 			}
 
 			payload := ToJSONRaw(m)
-			res, _, _ := CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
+			res := CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
 			groupRC += res.RcUsed
 		}
 

@@ -16,7 +16,7 @@ func TestEditionsBenchmark(t *testing.T) {
 	var totalRC int64
 	for i := 0; i < 20; i++ {
 		payload := []byte(`{"to":"hive:tibfox","id":"edition-` + strconv.Itoa(i) + `","amount":1000,"maxSupply":1000,"properties":{"collection":"Edition #` + strconv.Itoa(i) + `","type":"collectible"},"data":""}`)
-		res, _, _ := CallContract(t, ct, "mint", payload, nil, ownerAddress, true, maxGas, "")
+		res := CallContract(t, ct, "mint", payload, nil, ownerAddress, true, maxGas, "")
 		totalRC += res.RcUsed
 	}
 

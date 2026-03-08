@@ -18,14 +18,14 @@ func TestBurnSuccess(t *testing.T) {
 	CallContract(t, ct, "burn", burnPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":70}` {
 		t.Errorf("Expected balance 70, got %s", result.Ret)
 	}
 
 	// Check total supply decreased
 	supplyPayload := []byte(`{"id":"1"}`)
-	result, _, _ = CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result = CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"totalSupply":70}` {
 		t.Errorf("Expected totalSupply 70, got %s", result.Ret)
 	}
@@ -86,14 +86,14 @@ func TestBurnEntireBalance(t *testing.T) {
 
 	// Balance should be 0
 	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":0}` {
 		t.Errorf("Expected balance 0, got %s", result.Ret)
 	}
 
 	// Total supply should be 0
 	supplyPayload := []byte(`{"id":"1"}`)
-	result2, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result2.Ret != `{"totalSupply":0}` {
 		t.Errorf("Expected totalSupply 0, got %s", result2.Ret)
 	}
@@ -117,7 +117,7 @@ func TestBurnAndRemint(t *testing.T) {
 
 	// Total supply should be back to 100
 	supplyPayload := []byte(`{"id":"1"}`)
-	result, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"totalSupply":100}` {
 		t.Errorf("Expected totalSupply 100, got %s", result.Ret)
 	}
@@ -198,14 +198,14 @@ func TestOperatorCanBurn(t *testing.T) {
 
 	// Operator burns tokens on behalf of user
 	burnPayload := []byte(`{"from":"hive:user1","id":"1","amount":30}`)
-	result, _, _ := CallContract(t, ct, "burn", burnPayload, nil, "hive:operator", true, uint(150_000_000), "")
+	result := CallContract(t, ct, "burn", burnPayload, nil, "hive:operator", true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected operator burn success, got %s", result.Ret)
 	}
 
 	// Verify balance decreased
 	balPayload := []byte(`{"account":"hive:user1","id":"1"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":70}` {
 		t.Errorf("Expected balance 70, got %s", balResult.Ret)
 	}
@@ -225,20 +225,20 @@ func TestOperatorCanBatchBurn(t *testing.T) {
 
 	// Operator batch burns tokens on behalf of user
 	burnPayload := []byte(`{"from":"hive:user1","ids":["1","2"],"amounts":[30,50]}`)
-	result, _, _ := CallContract(t, ct, "burnBatch", burnPayload, nil, "hive:operator", true, uint(150_000_000), "")
+	result := CallContract(t, ct, "burnBatch", burnPayload, nil, "hive:operator", true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected operator batch burn success, got %s", result.Ret)
 	}
 
 	// Verify balances decreased
 	bal1 := []byte(`{"account":"hive:user1","id":"1"}`)
-	bal1Result, _, _ := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
+	bal1Result := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal1Result.Ret != `{"balance":70}` {
 		t.Errorf("Expected balance 70, got %s", bal1Result.Ret)
 	}
 
 	bal2 := []byte(`{"account":"hive:user1","id":"2"}`)
-	bal2Result, _, _ := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
+	bal2Result := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal2Result.Ret != `{"balance":150}` {
 		t.Errorf("Expected balance 150, got %s", bal2Result.Ret)
 	}
@@ -279,14 +279,14 @@ func TestRegularUserCanBurnOwnTokens(t *testing.T) {
 
 	// Regular user burns their own tokens
 	burnPayload := []byte(`{"from":"hive:regularuser","id":"1","amount":40}`)
-	result, _, _ := CallContract(t, ct, "burn", burnPayload, nil, "hive:regularuser", true, uint(150_000_000), "")
+	result := CallContract(t, ct, "burn", burnPayload, nil, "hive:regularuser", true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected user to burn their own tokens, got %s", result.Ret)
 	}
 
 	// Verify balance
 	balPayload := []byte(`{"account":"hive:regularuser","id":"1"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":60}` {
 		t.Errorf("Expected balance 60, got %s", balResult.Ret)
 	}
@@ -302,20 +302,20 @@ func TestRegularUserCanBatchBurnOwnTokens(t *testing.T) {
 
 	// Regular user batch burns their own tokens
 	burnPayload := []byte(`{"from":"hive:regularuser","ids":["1","2"],"amounts":[25,75]}`)
-	result, _, _ := CallContract(t, ct, "burnBatch", burnPayload, nil, "hive:regularuser", true, uint(150_000_000), "")
+	result := CallContract(t, ct, "burnBatch", burnPayload, nil, "hive:regularuser", true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected user batch burn success, got %s", result.Ret)
 	}
 
 	// Verify balances
 	bal1 := []byte(`{"account":"hive:regularuser","id":"1"}`)
-	bal1Result, _, _ := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
+	bal1Result := CallContract(t, ct, "balanceOf", bal1, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal1Result.Ret != `{"balance":75}` {
 		t.Errorf("Expected balance 75, got %s", bal1Result.Ret)
 	}
 
 	bal2 := []byte(`{"account":"hive:regularuser","id":"2"}`)
-	bal2Result, _, _ := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
+	bal2Result := CallContract(t, ct, "balanceOf", bal2, nil, ownerAddress, true, uint(150_000_000), "")
 	if bal2Result.Ret != `{"balance":125}` {
 		t.Errorf("Expected balance 125, got %s", bal2Result.Ret)
 	}
@@ -339,7 +339,7 @@ func TestContractOwnerCannotBurnOthersTokens(t *testing.T) {
 
 	// Verify balance unchanged
 	balPayload := []byte(`{"account":"hive:user1","id":"1"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":100}` {
 		t.Errorf("Expected balance unchanged at 100, got %s", balResult.Ret)
 	}
@@ -372,14 +372,14 @@ func TestContractOwnerCanBurnIfApproved(t *testing.T) {
 
 	// Now contract owner can burn user's tokens
 	burnPayload := []byte(`{"from":"hive:user1","id":"1","amount":30}`)
-	result, _, _ := CallContract(t, ct, "burn", burnPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "burn", burnPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected approved contract owner to burn, got %s", result.Ret)
 	}
 
 	// Verify balance
 	balPayload := []byte(`{"account":"hive:user1","id":"1"}`)
-	balResult, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	balResult := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if balResult.Ret != `{"balance":70}` {
 		t.Errorf("Expected balance 70, got %s", balResult.Ret)
 	}

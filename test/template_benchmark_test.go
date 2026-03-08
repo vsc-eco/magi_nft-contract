@@ -46,7 +46,7 @@ func TestTemplateBenchmark(t *testing.T) {
 			"properties":  properties,
 			"data":        "",
 		})
-		res, _, _ := CallContract(t, ct1, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
+		res := CallContract(t, ct1, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
 		totalWithProps += res.RcUsed
 	}
 
@@ -90,7 +90,7 @@ func TestTemplateBenchmark(t *testing.T) {
 		}
 
 		payload := ToJSONRaw(m)
-		res, _, _ := CallContract(t, ct2, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
+		res := CallContract(t, ct2, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
 		totalWithTemplate += res.RcUsed
 	}
 
@@ -120,7 +120,7 @@ func TestTemplateBenchmark(t *testing.T) {
 			"maxSupplies": maxSupplies,
 			"data":        "",
 		})
-		res, _, _ := CallContract(t, ct3, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
+		res := CallContract(t, ct3, "mintBatch", payload, nil, ownerAddress, true, maxGas, "")
 		totalNoProps += res.RcUsed
 	}
 

@@ -74,7 +74,7 @@ func TestEditionedNFTLifecycle(t *testing.T) {
 
 	// Verify approval
 	approvalCheck := []byte(`{"account":"` + alice + `","operator":"` + otherContract + `"}`)
-	result, _, _ := CallContract(t, ct, "isApprovedForAll", approvalCheck, nil, alice, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "isApprovedForAll", approvalCheck, nil, alice, true, uint(150_000_000), "")
 	if result.Ret != `{"approved":true}` {
 		t.Errorf("Expected approved true, got %s", result.Ret)
 	}
@@ -189,13 +189,13 @@ func TestUniqueNFTLifecycle(t *testing.T) {
 
 	// Verify both approvals
 	checkApprovalX := []byte(`{"account":"` + bob + `","operator":"` + contractX + `"}`)
-	resultX, _, _ := CallContract(t, ct, "isApprovedForAll", checkApprovalX, nil, bob, true, uint(150_000_000), "")
+	resultX := CallContract(t, ct, "isApprovedForAll", checkApprovalX, nil, bob, true, uint(150_000_000), "")
 	if resultX.Ret != `{"approved":true}` {
 		t.Errorf("Expected contractX approved, got %s", resultX.Ret)
 	}
 
 	checkApprovalY := []byte(`{"account":"` + bob + `","operator":"` + contractY + `"}`)
-	resultY, _, _ := CallContract(t, ct, "isApprovedForAll", checkApprovalY, nil, bob, true, uint(150_000_000), "")
+	resultY := CallContract(t, ct, "isApprovedForAll", checkApprovalY, nil, bob, true, uint(150_000_000), "")
 	if resultY.Ret != `{"approved":true}` {
 		t.Errorf("Expected contractY approved, got %s", resultY.Ret)
 	}
@@ -272,14 +272,14 @@ func verifySupply(t *testing.T, ct *test_utils.ContractTest, tokenId string, exp
 	t.Helper()
 
 	totalPayload := []byte(`{"id":"` + tokenId + `"}`)
-	result, _, _ := CallContract(t, ct, "totalSupply", totalPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalSupply", totalPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	expectedTotalStr := `{"totalSupply":` + formatUint(expectedTotal) + `}`
 	if result.Ret != expectedTotalStr {
 		t.Errorf("Expected totalSupply %d, got %s", expectedTotal, result.Ret)
 	}
 
 	maxPayload := []byte(`{"id":"` + tokenId + `"}`)
-	result2, _, _ := CallContract(t, ct, "maxSupply", maxPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "maxSupply", maxPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	expectedMaxStr := `{"maxSupply":` + formatUint(expectedMax) + `}`
 	if result2.Ret != expectedMaxStr {
 		t.Errorf("Expected maxSupply %d, got %s", expectedMax, result2.Ret)
@@ -291,7 +291,7 @@ func verifyBalance(t *testing.T, ct *test_utils.ContractTest, account, tokenId s
 	t.Helper()
 
 	balPayload := []byte(`{"account":"` + account + `","id":"` + tokenId + `"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	expectedStr := `{"balance":` + formatUint(expected) + `}`
 	if result.Ret != expectedStr {
 		t.Errorf("Expected balance %d for %s, got %s", expected, account, result.Ret)

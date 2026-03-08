@@ -16,7 +16,7 @@ func TestPauseAndUnpause(t *testing.T) {
 	CallContract(t, ct, "pause", nil, nil, ownerAddress, true, uint(150_000_000), "")
 
 	// Check paused
-	result, _, _ := CallContract(t, ct, "isPaused", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "isPaused", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"paused":true}` {
 		t.Errorf("Expected paused true, got %s", result.Ret)
 	}
@@ -68,7 +68,7 @@ func TestIsPausedReturnsFalseByDefault(t *testing.T) {
 	ct := SetupContractTest()
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
-	result, _, _ := CallContract(t, ct, "isPaused", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "isPaused", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"paused":false}` {
 		t.Errorf("Expected paused false, got %s", result.Ret)
 	}
@@ -87,7 +87,7 @@ func TestChangeOwner(t *testing.T) {
 	CallContract(t, ct, "changeOwner", changePayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	// Check new owner
-	result, _, _ := CallContract(t, ct, "getOwner", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "getOwner", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"owner":"hive:newowner"}` {
 		t.Errorf("Expected new owner, got %s", result.Ret)
 	}
@@ -125,7 +125,7 @@ func TestChangeOwnerToSameOwner(t *testing.T) {
 	CallContract(t, ct, "changeOwner", changePayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	// Owner should still be the same
-	result, _, _ := CallContract(t, ct, "getOwner", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "getOwner", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"owner":"hive:tibfox"}` {
 		t.Errorf("Expected same owner, got %s", result.Ret)
 	}
@@ -162,7 +162,7 @@ func TestNewOwnerCanChangeOwnerAgain(t *testing.T) {
 	CallContract(t, ct, "changeOwner", change2, nil, "hive:owner2", true, uint(150_000_000), "")
 
 	// Verify final owner
-	result, _, _ := CallContract(t, ct, "getOwner", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "getOwner", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"owner":"hive:owner3"}` {
 		t.Errorf("Expected owner3, got %s", result.Ret)
 	}

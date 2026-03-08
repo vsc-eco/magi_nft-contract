@@ -15,7 +15,7 @@ func TestTotalSupplyQuery(t *testing.T) {
 	CallContract(t, ct, "mint", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	supplyPayload := []byte(`{"id":"1"}`)
-	result, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"totalSupply":50}` {
 		t.Errorf("Expected totalSupply 50, got %s", result.Ret)
 	}
@@ -28,7 +28,7 @@ func TestMaxSupplyQuery(t *testing.T) {
 	CallContract(t, ct, "mint", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	supplyPayload := []byte(`{"id":"1"}`)
-	result, _, _ := CallContract(t, ct, "maxSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "maxSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"maxSupply":100}` {
 		t.Errorf("Expected maxSupply 100, got %s", result.Ret)
 	}
@@ -39,7 +39,7 @@ func TestTotalSupplyReturnsZeroForNonExistentToken(t *testing.T) {
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	supplyPayload := []byte(`{"id":"nonexistent"}`)
-	result, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"totalSupply":0}` {
 		t.Errorf("Expected totalSupply 0, got %s", result.Ret)
 	}
@@ -50,7 +50,7 @@ func TestMaxSupplyReturnsZeroForNonExistentToken(t *testing.T) {
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	supplyPayload := []byte(`{"id":"nonexistent"}`)
-	result, _, _ := CallContract(t, ct, "maxSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "maxSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"maxSupply":0}` {
 		t.Errorf("Expected maxSupply 0, got %s", result.Ret)
 	}
@@ -74,13 +74,13 @@ func TestSupplyAfterMultipleMints(t *testing.T) {
 
 	// Verify total supply is 70
 	supplyPayload := []byte(`{"id":"multi"}`)
-	result, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"totalSupply":70}` {
 		t.Errorf("Expected totalSupply 70, got %s", result.Ret)
 	}
 
 	// Max supply should still be 100
-	result2, _, _ := CallContract(t, ct, "maxSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "maxSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result2.Ret != `{"maxSupply":100}` {
 		t.Errorf("Expected maxSupply 100, got %s", result2.Ret)
 	}
@@ -98,13 +98,13 @@ func TestSupplyAfterBurn(t *testing.T) {
 
 	// Total supply should be 60
 	supplyPayload := []byte(`{"id":"burntest"}`)
-	result, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"totalSupply":60}` {
 		t.Errorf("Expected totalSupply 60, got %s", result.Ret)
 	}
 
 	// Max supply should still be 100
-	result2, _, _ := CallContract(t, ct, "maxSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "maxSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result2.Ret != `{"maxSupply":100}` {
 		t.Errorf("Expected maxSupply 100, got %s", result2.Ret)
 	}
@@ -124,7 +124,7 @@ func TestExistsReturnsTrueForMintedToken(t *testing.T) {
 
 	// Check exists
 	existsPayload := []byte(`{"id":"exists-test"}`)
-	result, _, _ := CallContract(t, ct, "exists", existsPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "exists", existsPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"exists":true}` {
 		t.Errorf("Expected exists true, got %s", result.Ret)
 	}
@@ -136,7 +136,7 @@ func TestExistsReturnsFalseForNonExistentToken(t *testing.T) {
 
 	// Check exists for token that was never minted
 	existsPayload := []byte(`{"id":"never-minted"}`)
-	result, _, _ := CallContract(t, ct, "exists", existsPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "exists", existsPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"exists":false}` {
 		t.Errorf("Expected exists false, got %s", result.Ret)
 	}
@@ -156,14 +156,14 @@ func TestExistsReturnsTrueAfterFullBurn(t *testing.T) {
 
 	// Token should still exist (maxSupply was set)
 	existsPayload := []byte(`{"id":"burn-exists"}`)
-	result, _, _ := CallContract(t, ct, "exists", existsPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "exists", existsPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"exists":true}` {
 		t.Errorf("Expected exists true after burn (token type was created), got %s", result.Ret)
 	}
 
 	// But totalSupply should be 0
 	supplyPayload := []byte(`{"id":"burn-exists"}`)
-	result2, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result2.Ret != `{"totalSupply":0}` {
 		t.Errorf("Expected totalSupply 0, got %s", result2.Ret)
 	}

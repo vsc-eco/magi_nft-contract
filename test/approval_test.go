@@ -16,7 +16,7 @@ func TestSetApprovalForAll(t *testing.T) {
 	CallContract(t, ct, "setApprovalForAll", approvalPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	checkPayload := []byte(`{"account":"hive:tibfox","operator":"hive:operator"}`)
-	result, _, _ := CallContract(t, ct, "isApprovedForAll", checkPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "isApprovedForAll", checkPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"approved":true}` {
 		t.Errorf("Expected approved true, got %s", result.Ret)
 	}
@@ -32,7 +32,7 @@ func TestRevokeApprovalForAll(t *testing.T) {
 
 	// Verify approved
 	checkPayload := []byte(`{"account":"hive:tibfox","operator":"hive:operator"}`)
-	result, _, _ := CallContract(t, ct, "isApprovedForAll", checkPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "isApprovedForAll", checkPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"approved":true}` {
 		t.Errorf("Expected approved true, got %s", result.Ret)
 	}
@@ -42,7 +42,7 @@ func TestRevokeApprovalForAll(t *testing.T) {
 	CallContract(t, ct, "setApprovalForAll", revokePayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	// Verify revoked
-	result2, _, _ := CallContract(t, ct, "isApprovedForAll", checkPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "isApprovedForAll", checkPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result2.Ret != `{"approved":false}` {
 		t.Errorf("Expected approved false, got %s", result2.Ret)
 	}
@@ -103,7 +103,7 @@ func TestIsApprovedForAllReturnsFalseForNonApproved(t *testing.T) {
 
 	// Check approval for operator that was never approved
 	checkPayload := []byte(`{"account":"hive:tibfox","operator":"hive:unknown"}`)
-	result, _, _ := CallContract(t, ct, "isApprovedForAll", checkPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "isApprovedForAll", checkPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"approved":false}` {
 		t.Errorf("Expected approved false, got %s", result.Ret)
 	}
@@ -131,13 +131,13 @@ func TestMultipleOperatorsCanBeApproved(t *testing.T) {
 
 	// Both should be approved
 	check1 := []byte(`{"account":"hive:tibfox","operator":"hive:operator1"}`)
-	result1, _, _ := CallContract(t, ct, "isApprovedForAll", check1, nil, ownerAddress, true, uint(150_000_000), "")
+	result1 := CallContract(t, ct, "isApprovedForAll", check1, nil, ownerAddress, true, uint(150_000_000), "")
 	if result1.Ret != `{"approved":true}` {
 		t.Errorf("Expected operator1 approved true, got %s", result1.Ret)
 	}
 
 	check2 := []byte(`{"account":"hive:tibfox","operator":"hive:operator2"}`)
-	result2, _, _ := CallContract(t, ct, "isApprovedForAll", check2, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "isApprovedForAll", check2, nil, ownerAddress, true, uint(150_000_000), "")
 	if result2.Ret != `{"approved":true}` {
 		t.Errorf("Expected operator2 approved true, got %s", result2.Ret)
 	}

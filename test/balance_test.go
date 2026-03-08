@@ -15,7 +15,7 @@ func TestBalanceOf(t *testing.T) {
 	CallContract(t, ct, "mint", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":100}` {
 		t.Errorf("Expected balance 100, got %s", result.Ret)
 	}
@@ -28,7 +28,7 @@ func TestBalanceOfBatch(t *testing.T) {
 	CallContract(t, ct, "mintBatch", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	batchPayload := []byte(`{"accounts":["hive:tibfox","hive:tibfox"],"ids":["1","2"]}`)
-	result, _, _ := CallContract(t, ct, "balanceOfBatch", batchPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOfBatch", batchPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balances":[100,200]}` {
 		t.Errorf("Expected balances [100,200], got %s", result.Ret)
 	}
@@ -42,7 +42,7 @@ func TestBalanceOfReturnsZeroForNonHolder(t *testing.T) {
 
 	// Check balance for someone who doesn't own the token
 	balancePayload := []byte(`{"account":"hive:other","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":0}` {
 		t.Errorf("Expected balance 0, got %s", result.Ret)
 	}
@@ -53,7 +53,7 @@ func TestBalanceOfReturnsZeroForNonExistentToken(t *testing.T) {
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	balancePayload := []byte(`{"account":"hive:tibfox","id":"nonexistent"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":0}` {
 		t.Errorf("Expected balance 0, got %s", result.Ret)
 	}
@@ -72,7 +72,7 @@ func TestBalanceOfBatchWithDifferentAccounts(t *testing.T) {
 
 	// Query balances for different account/token combinations
 	batchPayload := []byte(`{"accounts":["hive:alice","hive:bob"],"ids":["1","2"]}`)
-	result, _, _ := CallContract(t, ct, "balanceOfBatch", batchPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOfBatch", batchPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balances":[50,75]}` {
 		t.Errorf("Expected balances [50,75], got %s", result.Ret)
 	}
@@ -99,14 +99,14 @@ func TestBalanceAfterTransfer(t *testing.T) {
 
 	// Check sender balance
 	senderPayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", senderPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", senderPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":70}` {
 		t.Errorf("Expected sender balance 70, got %s", result.Ret)
 	}
 
 	// Check recipient balance
 	recipientPayload := []byte(`{"account":"hive:recipient","id":"1"}`)
-	result2, _, _ := CallContract(t, ct, "balanceOf", recipientPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "balanceOf", recipientPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result2.Ret != `{"balance":30}` {
 		t.Errorf("Expected recipient balance 30, got %s", result2.Ret)
 	}
@@ -123,7 +123,7 @@ func TestBalanceAfterBurn(t *testing.T) {
 	CallContract(t, ct, "burn", burnPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":60}` {
 		t.Errorf("Expected balance 60, got %s", result.Ret)
 	}

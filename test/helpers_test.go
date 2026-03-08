@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"vsc-node/lib/test_utils"
+	contract_session "vsc-node/modules/contract/session"
 	"vsc-node/modules/db/vsc/contracts"
 	stateEngine "vsc-node/modules/state-processing"
 
@@ -53,10 +54,10 @@ func CallContract(
 	maxGas uint,
 	expectedOutput string,
 
-) (stateEngine.TxResult, uint, map[string][]string) {
+) test_utils.ContractTestCallResult {
 	fmt.Println(action)
 	fmt.Println(string(payload))
-	result, gasUsed, logs := ct.Call(stateEngine.TxVscCallContract{
+	result := ct.Call(stateEngine.TxVscCallContract{
 		Caller: authUser,
 
 		Self: stateEngine.TxSelf{
@@ -75,14 +76,14 @@ func CallContract(
 		Intents:    intents,
 	})
 
-	PrintLogs(logs)
+	PrintLogs(result.Logs)
 	PrintErrorIfFailed(result)
 	fmt.Printf("return msg: %s\n", result.Ret)
 	fmt.Printf("RC used: %d\n", result.RcUsed)
-	fmt.Printf("gas used: %d\n", gasUsed)
+	fmt.Printf("gas used: %d\n", result.GasUsed)
 	fmt.Printf("gas max : %d\n", maxGas)
 
-	assert.LessOrEqual(t, gasUsed, maxGas, fmt.Sprintf("Gas %d exceeded limit %d", gasUsed, maxGas))
+	assert.LessOrEqual(t, result.GasUsed, maxGas, fmt.Sprintf("Gas %d exceeded limit %d", result.GasUsed, maxGas))
 
 	if expectedResult {
 		assert.True(t, result.Success, "Contract action failed with "+result.Ret)
@@ -92,7 +93,7 @@ func CallContract(
 	if expectedOutput != "" {
 		assert.True(t, startsWith(result.Ret, expectedOutput), true)
 	}
-	return result, gasUsed, logs
+	return result
 }
 
 // startsWith checks whether s begins with prefix, with no allocation.
@@ -109,16 +110,16 @@ func startsWith(s, prefix string) bool {
 }
 
 // PrintLogs prints all logs from a contract call
-func PrintLogs(logs map[string][]string) {
+func PrintLogs(logs map[string]contract_session.LogOutput) {
 	for key, values := range logs {
-		for _, v := range values {
+		for _, v := range values.Logs {
 			fmt.Printf("[%s] %s\n", key, v)
 		}
 	}
 }
 
 // PrintErrorIfFailed prints error if the contract call failed
-func PrintErrorIfFailed(result stateEngine.TxResult) {
+func PrintErrorIfFailed(result test_utils.ContractTestCallResult) {
 	if !result.Success {
 		fmt.Println(result.Err)
 	}

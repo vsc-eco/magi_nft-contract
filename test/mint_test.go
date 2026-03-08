@@ -134,7 +134,7 @@ func TestMintWithoutMaxSupplyOnExistingToken(t *testing.T) {
 
 	// Verify total supply is 75
 	supplyPayload := []byte(`{"id":"edition-002"}`)
-	result, _, _ := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalSupply", supplyPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"totalSupply":75}` {
 		t.Errorf("Expected totalSupply 75, got %s", result.Ret)
 	}

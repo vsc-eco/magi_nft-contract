@@ -18,7 +18,7 @@ func TestTrackMintedEnabled(t *testing.T) {
 	CallContract(t, ct, "init", initPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	// Verify trackMinted is enabled in getInfo
-	result, _, _ := CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"name":"Magi NFT","symbol":"MNFT","baseUri":"https://api.magi.network/metadata/","trackMinted":true}` {
 		t.Errorf("Expected trackMinted true in getInfo, got %s", result.Ret)
 	}
@@ -60,7 +60,7 @@ func TestTrackMintedDisabled(t *testing.T) {
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
 	// Verify trackMinted is disabled in getInfo
-	result, _, _ := CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "getInfo", nil, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"name":"Magi NFT","symbol":"MNFT","baseUri":"https://api.magi.network/metadata/","trackMinted":false}` {
 		t.Errorf("Expected trackMinted false in getInfo, got %s", result.Ret)
 	}
@@ -96,7 +96,7 @@ func TestTotalMintedQuery(t *testing.T) {
 
 	// Query totalMinted for non-existent token
 	payload := []byte(`{"id":"nonexistent"}`)
-	result, _, _ := CallContract(t, ct, "totalMinted", payload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalMinted", payload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"totalMinted":0}` {
 		t.Errorf("Expected totalMinted 0 for non-existent token, got %s", result.Ret)
 	}
@@ -107,7 +107,7 @@ func TestTotalMintedQuery(t *testing.T) {
 
 	// Query totalMinted
 	payload2 := []byte(`{"id":"test-token"}`)
-	result2, _, _ := CallContract(t, ct, "totalMinted", payload2, nil, ownerAddress, true, uint(150_000_000), "")
+	result2 := CallContract(t, ct, "totalMinted", payload2, nil, ownerAddress, true, uint(150_000_000), "")
 	if result2.Ret != `{"totalMinted":25}` {
 		t.Errorf("Expected totalMinted 25, got %s", result2.Ret)
 	}
@@ -222,7 +222,7 @@ func verifyTotalMinted(t *testing.T, ct *test_utils.ContractTest, tokenId string
 	t.Helper()
 
 	payload := []byte(`{"id":"` + tokenId + `"}`)
-	result, _, _ := CallContract(t, ct, "totalMinted", payload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "totalMinted", payload, nil, ownerAddress, true, uint(150_000_000), "")
 	expectedStr := `{"totalMinted":` + strconv.FormatUint(expected, 10) + `}`
 	if result.Ret != expectedStr {
 		t.Errorf("Expected totalMinted %d, got %s", expected, result.Ret)

@@ -19,13 +19,13 @@ func TestSafeTransferFromSuccess(t *testing.T) {
 
 	// Check balances
 	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":50}` {
 		t.Errorf("Expected sender balance 50, got %s", result.Ret)
 	}
 
 	recipientPayload := []byte(`{"account":"hive:recipient","id":"1"}`)
-	result, _, _ = CallContract(t, ct, "balanceOf", recipientPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result = CallContract(t, ct, "balanceOf", recipientPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":50}` {
 		t.Errorf("Expected recipient balance 50, got %s", result.Ret)
 	}
@@ -76,7 +76,7 @@ func TestSafeTransferFromWithZeroAmount(t *testing.T) {
 
 	// Balance should remain unchanged
 	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":100}` {
 		t.Errorf("Expected balance 100, got %s", result.Ret)
 	}
@@ -104,7 +104,7 @@ func TestSafeTransferFromSelfToSelf(t *testing.T) {
 
 	// Balance should still be 100
 	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result, _, _ := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
 	if result.Ret != `{"balance":100}` {
 		t.Errorf("Expected balance 100, got %s", result.Ret)
 	}
