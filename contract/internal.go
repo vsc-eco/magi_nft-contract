@@ -1,8 +1,8 @@
 package main
 
 import (
+	"encoding/binary"
 	"magi_nft/sdk"
-	"strconv"
 
 	"github.com/CosmWasm/tinyjson/jwriter"
 )
@@ -44,16 +44,16 @@ func balanceKey(account, tokenId string) string {
 // getBalance retrieves token balance of an address for a specific token ID.
 func getBalance(account, tokenId string) uint64 {
 	bal := sdk.StateGetObject(balanceKey(account, tokenId))
-	if bal == nil {
+	if bal == nil || *bal == "" {
 		return 0
 	}
-	amt, _ := strconv.ParseUint(*bal, 10, 64)
+	amt := bytesToU64([]byte(*bal))
 	return amt
 }
 
 // setBalance sets the balance of an address for a specific token ID.
 func setBalance(account, tokenId string, amount uint64) {
-	sdk.StateSetObject(balanceKey(account, tokenId), strconv.FormatUint(amount, 10))
+	sdk.StateSetObject(balanceKey(account, tokenId), string(u64ToBytes(amount)))
 }
 
 // incBalance increments token balance of an address for a specific token ID.
@@ -148,25 +148,25 @@ func totalSupplyKey(tokenId string) string {
 // getMaxSupply retrieves the max supply for a token ID (0 = not set).
 func getMaxSupply(tokenId string) uint64 {
 	val := sdk.StateGetObject(maxSupplyKey(tokenId))
-	if val == nil {
+	if val == nil || *val == "" {
 		return 0
 	}
-	amt, _ := strconv.ParseUint(*val, 10, 64)
+	amt := bytesToU64([]byte(*val))
 	return amt
 }
 
 // setMaxSupply sets the max supply for a token ID (can only be set once).
 func setMaxSupply(tokenId string, maxSupply uint64) {
-	sdk.StateSetObject(maxSupplyKey(tokenId), strconv.FormatUint(maxSupply, 10))
+	sdk.StateSetObject(maxSupplyKey(tokenId), string(u64ToBytes(maxSupply)))
 }
 
 // getTotalSupply retrieves the total minted supply for a token ID.
 func getTotalSupply(tokenId string) uint64 {
 	val := sdk.StateGetObject(totalSupplyKey(tokenId))
-	if val == nil {
+	if val == nil || *val == "" {
 		return 0
 	}
-	amt, _ := strconv.ParseUint(*val, 10, 64)
+	amt := bytesToU64([]byte(*val))
 	return amt
 }
 
@@ -174,14 +174,14 @@ func getTotalSupply(tokenId string) uint64 {
 func incTotalSupply(tokenId string, amount uint64) {
 	oldSupply := getTotalSupply(tokenId)
 	newSupply := safeAdd(oldSupply, amount)
-	sdk.StateSetObject(totalSupplyKey(tokenId), strconv.FormatUint(newSupply, 10))
+	sdk.StateSetObject(totalSupplyKey(tokenId), string(u64ToBytes(newSupply)))
 }
 
 // decTotalSupply decrements the total supply for a token ID (on burn).
 func decTotalSupply(tokenId string, amount uint64) {
 	oldSupply := getTotalSupply(tokenId)
 	newSupply := safeSub(oldSupply, amount)
-	sdk.StateSetObject(totalSupplyKey(tokenId), strconv.FormatUint(newSupply, 10))
+	sdk.StateSetObject(totalSupplyKey(tokenId), string(u64ToBytes(newSupply)))
 }
 
 // totalMintedKey returns the state key for a token's total minted count (never decreases).
@@ -192,10 +192,10 @@ func totalMintedKey(tokenId string) string {
 // getTotalMinted retrieves the total ever minted for a token ID.
 func getTotalMinted(tokenId string) uint64 {
 	val := sdk.StateGetObject(totalMintedKey(tokenId))
-	if val == nil {
+	if val == nil || *val == "" {
 		return 0
 	}
-	amt, _ := strconv.ParseUint(*val, 10, 64)
+	amt := bytesToU64([]byte(*val))
 	return amt
 }
 
@@ -203,7 +203,7 @@ func getTotalMinted(tokenId string) uint64 {
 func incTotalMinted(tokenId string, amount uint64) {
 	oldMinted := getTotalMinted(tokenId)
 	newMinted := safeAdd(oldMinted, amount)
-	sdk.StateSetObject(totalMintedKey(tokenId), strconv.FormatUint(newMinted, 10))
+	sdk.StateSetObject(totalMintedKey(tokenId), string(u64ToBytes(newMinted)))
 }
 
 // isTrackMintedEnabled checks if totalMinted tracking is enabled for this contract.
@@ -299,6 +299,47 @@ func isApprovedOrOwner(caller, from string) bool {
 		return true
 	}
 	return isApprovedForAllInternal(from, caller)
+}
+
+// ===================================
+// uint64 <-> []byte Helper
+// ===================================
+
+func u64ToBytes(val uint64) []byte {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, val)
+
+	// In Little Endian, leading zeros (most significant bytes) are at the end of the slice.
+	// We iterate backwards to find the last non-zero byte.
+	lastNonZeroIndex := len(b) - 1
+	for lastNonZeroIndex >= 0 {
+		if b[lastNonZeroIndex] != 0 {
+			break
+		}
+		lastNonZeroIndex--
+	}
+
+	// If the value was 0, ensure we return at least one byte (0x00) instead of an empty slice.
+	if lastNonZeroIndex < 0 {
+		return []byte{0}
+	}
+
+	return b[:lastNonZeroIndex+1]
+}
+
+func bytesToU64(b []byte) uint64 {
+	if len(b) > 8 {
+		sdk.Abort("byte length less than or equal to 8")
+	}
+
+	// Create an 8-byte buffer initialized to zeros.
+	buf := make([]byte, 8)
+
+	// In Little Endian, the existing bytes are the least significant and go at the start.
+	// Copy the input slice into the beginning of the buffer.
+	copy(buf, b)
+
+	return binary.LittleEndian.Uint64(buf)
 }
 
 // ===================================

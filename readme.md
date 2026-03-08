@@ -332,7 +332,7 @@ Now `card-5` has custom stats, while all other cards still inherit from `card-0`
 
 ## Events
 
-All events include `type`, `attributes`, and `tx` (transaction ID).
+All events include `type` and `attributes`.
 
 | Event Type       | Attributes                                    |
 |------------------|-----------------------------------------------|

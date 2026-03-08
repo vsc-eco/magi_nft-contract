@@ -1446,8 +1446,6 @@ func (v InitEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -1472,8 +1470,6 @@ func (v TransferSingleEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -1500,8 +1496,6 @@ func (v TransferBatchEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -1542,8 +1536,6 @@ func (v ApprovalForAllEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -1566,8 +1558,6 @@ func (v URIEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -1588,8 +1578,6 @@ func (v OwnerChangeEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -1610,8 +1598,6 @@ func (v PausedEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -1630,8 +1616,6 @@ func (v UnpausedEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -1650,8 +1634,6 @@ func (v BaseURIChangeEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 

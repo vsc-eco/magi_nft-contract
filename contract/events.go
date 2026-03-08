@@ -15,7 +15,6 @@ import (
 // ==============
 
 func emitInit(owner, name, symbol, baseURI string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := InitEvent{
 		Type: "init_magi_nft",
 		Attributes: InitAttributes{
@@ -24,7 +23,6 @@ func emitInit(owner, name, symbol, baseURI string) {
 			Symbol:  symbol,
 			BaseURI: baseURI,
 		},
-		Tx: *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -36,7 +34,6 @@ func emitInit(owner, name, symbol, baseURI string) {
 // ==================
 
 func emitTransferSingle(operator, from, to, id string, value uint64) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := TransferSingleEvent{
 		Type: "TransferSingle",
 		Attributes: TransferSingleAttributes{
@@ -46,7 +43,6 @@ func emitTransferSingle(operator, from, to, id string, value uint64) {
 			Id:       id,
 			Value:    value,
 		},
-		Tx: *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -58,7 +54,6 @@ func emitTransferSingle(operator, from, to, id string, value uint64) {
 // ==================
 
 func emitTransferBatch(operator, from, to string, ids []string, values []uint64) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := TransferBatchEvent{
 		Type: "TransferBatch",
 		Attributes: TransferBatchAttributes{
@@ -68,7 +63,6 @@ func emitTransferBatch(operator, from, to string, ids []string, values []uint64)
 			Ids:      ids,
 			Values:   values,
 		},
-		Tx: *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -80,7 +74,6 @@ func emitTransferBatch(operator, from, to string, ids []string, values []uint64)
 // ======================
 
 func emitApprovalForAll(account, operator string, approved bool) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := ApprovalForAllEvent{
 		Type: "ApprovalForAll",
 		Attributes: ApprovalForAllAttributes{
@@ -88,7 +81,6 @@ func emitApprovalForAll(account, operator string, approved bool) {
 			Operator: operator,
 			Approved: approved,
 		},
-		Tx: *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -100,14 +92,12 @@ func emitApprovalForAll(account, operator string, approved bool) {
 // ======================
 
 func emitURI(value, id string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := URIEvent{
 		Type: "URI",
 		Attributes: URIAttributes{
 			Value: value,
 			Id:    id,
 		},
-		Tx: *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -119,11 +109,9 @@ func emitURI(value, id string) {
 // ======================
 
 func emitOwnerChange(previousOwner, newOwner string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := OwnerChangeEvent{
 		Type:       "ownerChange",
 		Attributes: OwnerChangeAttributes{PreviousOwner: previousOwner, NewOwner: newOwner},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -135,11 +123,9 @@ func emitOwnerChange(previousOwner, newOwner string) {
 // ======================
 
 func emitPaused(by string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := PausedEvent{
 		Type:       "paused",
 		Attributes: PausedAttributes{By: by},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -147,11 +133,9 @@ func emitPaused(by string) {
 }
 
 func emitUnpaused(by string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := UnpausedEvent{
 		Type:       "unpaused",
 		Attributes: UnpausedAttributes{By: by},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -163,11 +147,9 @@ func emitUnpaused(by string) {
 // ======================
 
 func emitBaseURIChange(previousURI, newURI string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := BaseURIChangeEvent{
 		Type:       "baseUriChange",
 		Attributes: BaseURIChangeAttributes{PreviousURI: previousURI, NewURI: newURI},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)

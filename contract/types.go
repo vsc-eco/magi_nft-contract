@@ -75,9 +75,9 @@ type MintBatchPayload struct {
 	To                 string   `json:"to"`
 	Ids                []string `json:"ids"`
 	Amounts            []uint64 `json:"amounts"`
-	MaxSupplies        []uint64 `json:"maxSupplies"`       // Required: per-token max supply
-	Soulbound          []bool   `json:"soulbound"`         // Optional: per-token soulbound flags
-	Properties         []string `json:"properties"`        // Optional: per-token arbitrary JSON properties
+	MaxSupplies        []uint64 `json:"maxSupplies"`        // Required: per-token max supply
+	Soulbound          []bool   `json:"soulbound"`          // Optional: per-token soulbound flags
+	Properties         []string `json:"properties"`         // Optional: per-token arbitrary JSON properties
 	PropertiesTemplate string   `json:"propertiesTemplate"` // Optional: token ID to inherit properties from (tokens without explicit properties get this template)
 	Data               string   `json:"data"`
 }
@@ -248,7 +248,6 @@ type SupportsInterfaceResponse struct {
 type InitEvent struct {
 	Type       string         `json:"type"`
 	Attributes InitAttributes `json:"attributes"`
-	Tx         string         `json:"tx"`
 }
 
 type InitAttributes struct {
@@ -262,7 +261,6 @@ type InitAttributes struct {
 type TransferSingleEvent struct {
 	Type       string                   `json:"type"`
 	Attributes TransferSingleAttributes `json:"attributes"`
-	Tx         string                   `json:"tx"`
 }
 
 type TransferSingleAttributes struct {
@@ -277,7 +275,6 @@ type TransferSingleAttributes struct {
 type TransferBatchEvent struct {
 	Type       string                  `json:"type"`
 	Attributes TransferBatchAttributes `json:"attributes"`
-	Tx         string                  `json:"tx"`
 }
 
 type TransferBatchAttributes struct {
@@ -292,7 +289,6 @@ type TransferBatchAttributes struct {
 type ApprovalForAllEvent struct {
 	Type       string                   `json:"type"`
 	Attributes ApprovalForAllAttributes `json:"attributes"`
-	Tx         string                   `json:"tx"`
 }
 
 type ApprovalForAllAttributes struct {
@@ -305,7 +301,6 @@ type ApprovalForAllAttributes struct {
 type URIEvent struct {
 	Type       string        `json:"type"`
 	Attributes URIAttributes `json:"attributes"`
-	Tx         string        `json:"tx"`
 }
 
 type URIAttributes struct {
@@ -317,7 +312,6 @@ type URIAttributes struct {
 type OwnerChangeEvent struct {
 	Type       string                `json:"type"`
 	Attributes OwnerChangeAttributes `json:"attributes"`
-	Tx         string                `json:"tx"`
 }
 
 type OwnerChangeAttributes struct {
@@ -329,7 +323,6 @@ type OwnerChangeAttributes struct {
 type PausedEvent struct {
 	Type       string           `json:"type"`
 	Attributes PausedAttributes `json:"attributes"`
-	Tx         string           `json:"tx"`
 }
 
 type PausedAttributes struct {
@@ -340,7 +333,6 @@ type PausedAttributes struct {
 type UnpausedEvent struct {
 	Type       string             `json:"type"`
 	Attributes UnpausedAttributes `json:"attributes"`
-	Tx         string             `json:"tx"`
 }
 
 type UnpausedAttributes struct {
@@ -351,7 +343,6 @@ type UnpausedAttributes struct {
 type BaseURIChangeEvent struct {
 	Type       string                  `json:"type"`
 	Attributes BaseURIChangeAttributes `json:"attributes"`
-	Tx         string                  `json:"tx"`
 }
 
 type BaseURIChangeAttributes struct {
