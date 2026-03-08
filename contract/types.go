@@ -358,3 +358,28 @@ type BaseURIChangeAttributes struct {
 	PreviousURI string `json:"previousUri"`
 	NewURI      string `json:"newUri"`
 }
+
+// TemplateMintEvent records which tokens were minted from a template
+type TemplateMintEvent struct {
+	Type       string                 `json:"type"`
+	Attributes TemplateMintAttributes `json:"attributes"`
+	Tx         string                 `json:"tx"`
+}
+
+type TemplateMintAttributes struct {
+	TemplateId string   `json:"templateId"`
+	CopyIds    []string `json:"copyIds"`
+}
+
+// TokenCreatedEvent emitted when a token ID is first minted
+type TokenCreatedEvent struct {
+	Type       string                  `json:"type"`
+	Attributes TokenCreatedAttributes `json:"attributes"`
+	Tx         string                  `json:"tx"`
+}
+
+type TokenCreatedAttributes struct {
+	TokenId   string `json:"tokenId"`
+	MaxSupply uint64 `json:"maxSupply"`
+	Soulbound bool   `json:"soulbound"`
+}

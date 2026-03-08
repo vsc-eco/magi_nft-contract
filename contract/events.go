@@ -162,6 +162,37 @@ func emitUnpaused(by string) {
 // BaseURI Change Event
 // ======================
 
+func emitTemplateMint(templateId string, copyIds []string) {
+	txID := sdk.GetEnvKey("tx.id")
+	event := TemplateMintEvent{
+		Type: "templateMint",
+		Attributes: TemplateMintAttributes{
+			TemplateId: templateId,
+			CopyIds:    copyIds,
+		},
+		Tx: *txID,
+	}
+	w := jwriter.Writer{}
+	event.MarshalTinyJSON(&w)
+	sdk.Log(string(w.Buffer.BuildBytes()))
+}
+
+func emitTokenCreated(tokenId string, maxSupply uint64, soulbound bool) {
+	txID := sdk.GetEnvKey("tx.id")
+	event := TokenCreatedEvent{
+		Type: "tokenCreated",
+		Attributes: TokenCreatedAttributes{
+			TokenId:   tokenId,
+			MaxSupply: maxSupply,
+			Soulbound: soulbound,
+		},
+		Tx: *txID,
+	}
+	w := jwriter.Writer{}
+	event.MarshalTinyJSON(&w)
+	sdk.Log(string(w.Buffer.BuildBytes()))
+}
+
 func emitBaseURIChange(previousURI, newURI string) {
 	txID := sdk.GetEnvKey("tx.id")
 	event := BaseURIChangeEvent{

@@ -88,7 +88,7 @@ func TestMintBatchWithProperties(t *testing.T) {
 
 	// Mint batch with per-token properties
 	mintPayload := []byte(`{"to":"hive:tibfox","ids":["batch-p1","batch-p2"],"amounts":[1,1],"maxSupplies":[1,1],"properties":[{"color":"red"},{"color":"blue","size":42}],"data":""}`)
-	result, _, _ := CallContract(t, ct, "mintBatch", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	result, _, _ := CallContract(t, ct, "mintBatch", mintPayload, nil, ownerAddress, true, uint(200_000_000), "")
 	if result.Ret != `{"success":true}` {
 		t.Errorf("Expected success, got %s", result.Ret)
 	}

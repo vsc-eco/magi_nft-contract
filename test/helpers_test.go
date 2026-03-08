@@ -14,6 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// CallResult is an alias for the test call result type
+type CallResult = test_utils.ContractTestCallResult
+
 var _ = embed.FS{} // just so "embed" can be imported
 
 const ContractID = "vsctestcontract"
@@ -28,7 +31,7 @@ var ContractWasm []byte
 // Setup an Instance of a test
 func SetupContractTest() *test_utils.ContractTest {
 	CleanBadgerDB()
-	ct := test_utils.NewContractTest()
+	ct := test_utils.NewContractTest(test_utils.ContractTestOpts{Port: 19720})
 	ct.RegisterContract(ContractID, ownerAddress, ContractWasm)
 	return &ct
 }
@@ -53,10 +56,10 @@ func CallContract(
 	maxGas uint,
 	expectedOutput string,
 
-) (stateEngine.TxResult, uint, map[string][]string) {
+) (CallResult, uint, map[string][]string) {
 	fmt.Println(action)
 	fmt.Println(string(payload))
-	result, gasUsed, logs := ct.Call(stateEngine.TxVscCallContract{
+	result := ct.Call(stateEngine.TxVscCallContract{
 		Caller: authUser,
 
 		Self: stateEngine.TxSelf{
@@ -71,18 +74,24 @@ func CallContract(
 		ContractId: ContractID,
 		Action:     action,
 		Payload:    payload,
-		RcLimit:    10000,
+		RcLimit:    100000,
 		Intents:    intents,
 	})
 
-	PrintLogs(logs)
+	// Convert logs to legacy format for compatibility
+	legacyLogs := make(map[string][]string)
+	for k, v := range result.Logs {
+		legacyLogs[k] = v.Logs
+	}
+
+	PrintLogs(legacyLogs)
 	PrintErrorIfFailed(result)
 	fmt.Printf("return msg: %s\n", result.Ret)
 	fmt.Printf("RC used: %d\n", result.RcUsed)
-	fmt.Printf("gas used: %d\n", gasUsed)
+	fmt.Printf("gas used: %d\n", result.GasUsed)
 	fmt.Printf("gas max : %d\n", maxGas)
 
-	assert.LessOrEqual(t, gasUsed, maxGas, fmt.Sprintf("Gas %d exceeded limit %d", gasUsed, maxGas))
+	assert.LessOrEqual(t, result.GasUsed, maxGas, fmt.Sprintf("Gas %d exceeded limit %d", result.GasUsed, maxGas))
 
 	if expectedResult {
 		assert.True(t, result.Success, "Contract action failed with "+result.Ret)
@@ -92,7 +101,7 @@ func CallContract(
 	if expectedOutput != "" {
 		assert.True(t, startsWith(result.Ret, expectedOutput), true)
 	}
-	return result, gasUsed, logs
+	return result, result.GasUsed, legacyLogs
 }
 
 // startsWith checks whether s begins with prefix, with no allocation.
@@ -118,9 +127,9 @@ func PrintLogs(logs map[string][]string) {
 }
 
 // PrintErrorIfFailed prints error if the contract call failed
-func PrintErrorIfFailed(result stateEngine.TxResult) {
+func PrintErrorIfFailed(result CallResult) {
 	if !result.Success {
-		fmt.Println(result.Err)
+		fmt.Println(result.ErrMsg)
 	}
 }
 

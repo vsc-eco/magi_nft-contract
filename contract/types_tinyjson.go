@@ -1664,3 +1664,56 @@ func (v BaseURIChangeAttributes) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.NewURI)
 	out.RawByte('}')
 }
+
+// TemplateMintEvent
+func (v TemplateMintEvent) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"type":`)
+	out.String(v.Type)
+	out.RawString(`,"attributes":`)
+	v.Attributes.MarshalTinyJSON(out)
+	out.RawString(`,"tx":`)
+	out.String(v.Tx)
+	out.RawByte('}')
+}
+
+// TokenCreatedEvent
+func (v TokenCreatedEvent) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"type":`)
+	out.String(v.Type)
+	out.RawString(`,"attributes":`)
+	v.Attributes.MarshalTinyJSON(out)
+	out.RawString(`,"tx":`)
+	out.String(v.Tx)
+	out.RawByte('}')
+}
+
+// TokenCreatedAttributes
+func (v TokenCreatedAttributes) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"tokenId":`)
+	out.String(v.TokenId)
+	out.RawString(`,"maxSupply":`)
+	out.Uint64(v.MaxSupply)
+	out.RawString(`,"soulbound":`)
+	out.Bool(v.Soulbound)
+	out.RawByte('}')
+}
+
+// TemplateMintAttributes
+func (v TemplateMintAttributes) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"templateId":`)
+	out.String(v.TemplateId)
+	out.RawString(`,"copyIds":`)
+	out.RawByte('[')
+	for i, id := range v.CopyIds {
+		if i > 0 {
+			out.RawByte(',')
+		}
+		out.String(id)
+	}
+	out.RawByte(']')
+	out.RawByte('}')
+}
