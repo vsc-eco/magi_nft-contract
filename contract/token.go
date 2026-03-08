@@ -307,6 +307,11 @@ func Mint(payload *string) *string {
 		}
 	}
 
+	// Emit tokenCreated on first mint
+	if existingMax == 0 {
+		emitTokenCreated(p.Id, maxSupply, p.Soulbound)
+	}
+
 	incBalance(p.To, p.Id, p.Amount)
 	incTotalSupply(p.Id, p.Amount)
 	emitTransferSingle(owner, "", p.To, p.Id, p.Amount) // Mint: from is zero address
@@ -418,10 +423,27 @@ func MintBatch(payload *string) *string {
 			}
 		}
 
+		// Emit tokenCreated on first mint
+		if existingMax == 0 {
+			emitTokenCreated(p.Ids[i], maxSupply, payloadSoulbound)
+		}
+
 		incBalance(p.To, p.Ids[i], p.Amounts[i])
 		incTotalSupply(p.Ids[i], p.Amounts[i])
 	}
 	emitTransferBatch(owner, "", p.To, p.Ids, p.Amounts) // Mint: from is zero address
+
+	// Emit template relationship if propertiesTemplate is set
+	if p.PropertiesTemplate != "" && len(p.Ids) > 1 {
+		copyIds := make([]string, 0, len(p.Ids)-1)
+		for _, id := range p.Ids {
+			if id != p.PropertiesTemplate {
+				copyIds = append(copyIds, id)
+			}
+		}
+		emitTemplateMint(p.PropertiesTemplate, copyIds)
+	}
+
 	return jsonResponse(SuccessResponse{Success: true})
 }
 

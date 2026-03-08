@@ -14,11 +14,11 @@ func TestMintFailsOnSafeAddOverflow(t *testing.T) {
 
 	// Mint a token with a very large supply
 	payload := []byte(`{"to":"hive:tibfox","id":"1","amount":18446744073709551615,"maxSupply":18446744073709551615,"data":""}`)
-	CallContract(t, ct, "mint", payload, nil, ownerAddress, true, uint(150_000_000), "")
+	CallContract(t, ct, "mint", payload, nil, ownerAddress, true, uint(200_000_000), "")
 
 	// Try to mint 1 more — safeAdd(max_uint64, 1) should overflow
 	payload2 := []byte(`{"to":"hive:tibfox","id":"1","amount":1,"data":""}`)
-	CallContract(t, ct, "mint", payload2, nil, ownerAddress, false, uint(150_000_000), "")
+	CallContract(t, ct, "mint", payload2, nil, ownerAddress, false, uint(200_000_000), "")
 }
 
 func TestMintBatchFailsOnSafeAddOverflow(t *testing.T) {
@@ -27,7 +27,7 @@ func TestMintBatchFailsOnSafeAddOverflow(t *testing.T) {
 
 	// Mint a token with a very large supply
 	payload := []byte(`{"to":"hive:tibfox","ids":["1"],"amounts":[18446744073709551615],"maxSupplies":[18446744073709551615],"data":""}`)
-	CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, uint(150_000_000), "")
+	CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, uint(200_000_000), "")
 
 	// Try to mint 1 more — safeAdd overflow
 	payload2 := []byte(`{"to":"hive:tibfox","ids":["1"],"amounts":[1],"maxSupplies":[18446744073709551615],"data":""}`)
