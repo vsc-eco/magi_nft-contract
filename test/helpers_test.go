@@ -15,6 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// CallResult is an alias for the test call result type
+type CallResult = test_utils.ContractTestCallResult
+
 var _ = embed.FS{} // just so "embed" can be imported
 
 const ContractID = "vsctestcontract"
@@ -54,7 +57,7 @@ func CallContract(
 	maxGas uint,
 	expectedOutput string,
 
-) test_utils.ContractTestCallResult {
+) CallResult {
 	fmt.Println(action)
 	fmt.Println(string(payload))
 	result := ct.Call(stateEngine.TxVscCallContract{
@@ -72,7 +75,7 @@ func CallContract(
 		ContractId: ContractID,
 		Action:     action,
 		Payload:    payload,
-		RcLimit:    10000,
+		RcLimit:    100000,
 		Intents:    intents,
 	})
 
@@ -119,9 +122,9 @@ func PrintLogs(logs map[string]contract_session.LogOutput) {
 }
 
 // PrintErrorIfFailed prints error if the contract call failed
-func PrintErrorIfFailed(result test_utils.ContractTestCallResult) {
+func PrintErrorIfFailed(result CallResult) {
 	if !result.Success {
-		fmt.Println(result.Err)
+		fmt.Println(result.ErrMsg)
 	}
 }
 
