@@ -372,3 +372,13 @@ type TokenCreatedAttributes struct {
 	MaxSupply uint64 `json:"maxSupply"`
 	Soulbound bool   `json:"soulbound"`
 }
+
+// PropertiesSetEvent for property updates
+type PropertiesSetEvent struct {
+	Type       string                  `json:"type"`
+	Attributes PropertiesSetAttributes `json:"attributes"`
+}
+
+type PropertiesSetAttributes struct {
+	Id string `json:"id"`
+}
