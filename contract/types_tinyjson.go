@@ -46,6 +46,8 @@ func (v *InitPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 			v.BaseURI = string(in.String())
 		case "trackMinted":
 			v.TrackMinted = bool(in.Bool())
+		case "metadata":
+			v.Metadata = string(in.Raw())
 		default:
 			in.SkipRecursive()
 		}
@@ -67,6 +69,10 @@ func (v InitPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.BaseURI)
 	out.RawString(`,"trackMinted":`)
 	out.Bool(v.TrackMinted)
+	if v.Metadata != "" {
+		out.RawString(`,"metadata":`)
+		out.Raw([]byte(v.Metadata), nil)
+	}
 	out.RawByte('}')
 }
 
@@ -1432,6 +1438,63 @@ func (v SupportsInterfaceResponse) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"supported":`)
 	out.Bool(v.Supported)
+	out.RawByte('}')
+}
+
+// ===================================
+// SetCollectionMetadataPayload
+// ===================================
+
+func (v *SetCollectionMetadataPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "metadata":
+			v.Metadata = string(in.Raw())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+
+func (v SetCollectionMetadataPayload) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	if v.Metadata != "" {
+		out.RawString(`"metadata":`)
+		out.Raw([]byte(v.Metadata), nil)
+	}
+	out.RawByte('}')
+}
+
+// CollectionMetadataResponse
+func (v CollectionMetadataResponse) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	if v.Metadata != "" {
+		out.RawString(`"metadata":`)
+		out.Raw([]byte(v.Metadata), nil)
+	} else {
+		out.RawString(`"metadata":null`)
+	}
 	out.RawByte('}')
 }
 
