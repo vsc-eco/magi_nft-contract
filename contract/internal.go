@@ -12,6 +12,64 @@ import (
 // ===================================
 
 // ===================================
+// Input Validation
+// ===================================
+
+// Maximum allowed lengths for user-controlled input fields.
+const (
+	maxAddressLen = 256
+	maxTokenIdLen = 256
+	maxURILen     = 1024
+	maxNameLen    = 64
+	maxSymbolLen  = 16
+)
+
+// validateAddress checks that an address is within length bounds and contains
+// no pipe characters, which are used as state key delimiters.
+func validateAddress(account string) {
+	if len(account) > maxAddressLen {
+		sdk.Abort("Address exceeds maximum length")
+	}
+	for i := 0; i < len(account); i++ {
+		if account[i] == '|' {
+			sdk.Abort("Invalid character in address")
+		}
+	}
+}
+
+// validateTokenId checks that a token ID is within length bounds and contains
+// no pipe characters, which are used as state key delimiters.
+func validateTokenId(id string) {
+	if len(id) > maxTokenIdLen {
+		sdk.Abort("Token ID exceeds maximum length")
+	}
+	for i := 0; i < len(id); i++ {
+		if id[i] == '|' {
+			sdk.Abort("Invalid character in token ID")
+		}
+	}
+}
+
+// validateURI checks that a URI is within length bounds.
+func validateURI(uri string) {
+	if len(uri) > maxURILen {
+		sdk.Abort("URI exceeds maximum length")
+	}
+}
+
+// validateBaseURI checks that a base URI is within length bounds and ends with
+// a trailing slash when non-empty, ensuring safe concatenation with token IDs.
+func validateBaseURI(uri string) {
+	if uri == "" {
+		return
+	}
+	validateURI(uri)
+	if uri[len(uri)-1] != '/' {
+		sdk.Abort("Base URI must end with a trailing slash")
+	}
+}
+
+// ===================================
 // Safe Math Utilities
 // ===================================
 
@@ -367,6 +425,9 @@ func bytesToU64(b []byte) uint64 {
 func jsonResponse(marshaler interface{ MarshalTinyJSON(*jwriter.Writer) }) *string {
 	w := jwriter.Writer{}
 	marshaler.MarshalTinyJSON(&w)
+	if w.Error != nil {
+		sdk.Abort("JSON marshal error")
+	}
 	result := string(w.Buffer.BuildBytes())
 	return &result
 }
