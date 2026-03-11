@@ -290,6 +290,24 @@ func getBaseURI() string {
 }
 
 // ===================================
+// Collection Metadata Management
+// ===================================
+
+// getCollectionMetadata retrieves the raw JSON collection metadata from state.
+func getCollectionMetadata() string {
+	val := sdk.StateGetObject("collection_metadata")
+	if val == nil {
+		return ""
+	}
+	return *val
+}
+
+// setCollectionMetadata stores raw JSON collection metadata in state.
+func setCollectionMetadata(metadata string) {
+	sdk.StateSetObject("collection_metadata", metadata)
+}
+
+// ===================================
 // Transfer Authorization
 // ===================================
 

@@ -14,6 +14,7 @@ type InitPayload struct {
 	Symbol      string `json:"symbol"`
 	BaseURI     string `json:"baseUri"`
 	TrackMinted bool   `json:"trackMinted"` // Optional: if true, burned tokens can't be re-minted
+	Metadata    string `json:"metadata"`    // Optional: arbitrary JSON collection metadata (description, image, etc.)
 }
 
 // SafeTransferFromPayload for safeTransferFrom action
@@ -146,6 +147,16 @@ type SetPropertiesPayload struct {
 // GetPropertiesPayload for getProperties query
 type GetPropertiesPayload struct {
 	Id string `json:"id"`
+}
+
+// SetCollectionMetadataPayload for setCollectionMetadata action
+type SetCollectionMetadataPayload struct {
+	Metadata string `json:"metadata"` // Arbitrary JSON stored as raw string
+}
+
+// CollectionMetadataResponse for getCollectionMetadata query
+type CollectionMetadataResponse struct {
+	Metadata string `json:"metadata"` // Raw JSON string
 }
 
 // SupportsInterfacePayload for supportsInterface query (ERC-165)

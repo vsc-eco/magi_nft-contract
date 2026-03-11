@@ -60,6 +60,9 @@ func Init(payload *string) *string {
 	if p.TrackMinted {
 		sdk.StateSetObject("track_minted", "1")
 	}
+	if p.Metadata != "" {
+		setCollectionMetadata(p.Metadata)
+	}
 
 	// Initialize contract state
 	sdk.StateSetObject("isInit", "1")
@@ -1013,6 +1016,49 @@ func GetProperties(payload *string) *string {
 
 	props := getTokenProperties(p.Id)
 	return jsonResponse(PropertiesResponse{Properties: props})
+}
+
+// ===================================
+// Collection Metadata Management
+// ===================================
+
+// SetCollectionMetadata sets or updates the collection-level metadata JSON.
+// Payload: {"metadata": {"description": "My collection", "image": "https://..."}}
+// Only the contract owner can set collection metadata.
+//
+//go:wasmexport setCollectionMetadata
+func SetCollectionMetadata(payload *string) *string {
+	assertInit()
+	_, isOwner := getOwner()
+	if !isOwner {
+		sdk.Abort("Must be owner to set collection metadata")
+	}
+	if payload == nil || *payload == "" {
+		sdk.Abort("Payload required")
+	}
+
+	var p SetCollectionMetadataPayload
+	r := jlexer.Lexer{Data: []byte(*payload)}
+	p.UnmarshalTinyJSON(&r)
+	if r.Error() != nil {
+		sdk.Abort("Invalid payload")
+	}
+
+	if p.Metadata == "" {
+		sdk.Abort("Metadata required")
+	}
+
+	setCollectionMetadata(p.Metadata)
+	return jsonResponse(SuccessResponse{Success: true})
+}
+
+// GetCollectionMetadata returns the collection-level metadata JSON.
+//
+//go:wasmexport getCollectionMetadata
+func GetCollectionMetadata(_ *string) *string {
+	assertInit()
+	metadata := getCollectionMetadata()
+	return jsonResponse(CollectionMetadataResponse{Metadata: metadata})
 }
 
 // ===================================
