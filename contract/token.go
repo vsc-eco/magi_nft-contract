@@ -49,9 +49,16 @@ func Init(payload *string) *string {
 	if p.Name == "" {
 		sdk.Abort("Name required")
 	}
+	if len(p.Name) > maxNameLen {
+		sdk.Abort("Name exceeds maximum length")
+	}
 	if p.Symbol == "" {
 		sdk.Abort("Symbol required")
 	}
+	if len(p.Symbol) > maxSymbolLen {
+		sdk.Abort("Symbol exceeds maximum length")
+	}
+	validateBaseURI(p.BaseURI)
 
 	// Store contract properties
 	sdk.StateSetObject("contract_name", p.Name)
@@ -98,12 +105,15 @@ func SafeTransferFrom(payload *string) *string {
 	if p.From == "" {
 		sdk.Abort("From address required")
 	}
+	validateAddress(p.From)
 	if p.To == "" {
 		sdk.Abort("To address required")
 	}
+	validateAddress(p.To)
 	if p.Id == "" {
 		sdk.Abort("Token ID required")
 	}
+	validateTokenId(p.Id)
 
 	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
@@ -152,14 +162,19 @@ func SafeBatchTransferFrom(payload *string) *string {
 	if p.From == "" {
 		sdk.Abort("From address required")
 	}
+	validateAddress(p.From)
 	if p.To == "" {
 		sdk.Abort("To address required")
 	}
+	validateAddress(p.To)
 	if len(p.Ids) == 0 {
 		sdk.Abort("Token IDs required")
 	}
 	if len(p.Ids) != len(p.Amounts) {
 		sdk.Abort("IDs and amounts length mismatch")
+	}
+	for _, id := range p.Ids {
+		validateTokenId(id)
 	}
 
 	caller := sdk.GetEnvKey("msg.caller")
@@ -211,6 +226,7 @@ func SetApprovalForAll(payload *string) *string {
 	if p.Operator == "" {
 		sdk.Abort("Operator required")
 	}
+	validateAddress(p.Operator)
 
 	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
@@ -259,9 +275,11 @@ func Mint(payload *string) *string {
 	if p.To == "" {
 		sdk.Abort("To address required")
 	}
+	validateAddress(p.To)
 	if p.Id == "" {
 		sdk.Abort("Token ID required")
 	}
+	validateTokenId(p.Id)
 	if p.Amount == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
@@ -350,6 +368,7 @@ func MintBatch(payload *string) *string {
 	if p.To == "" {
 		sdk.Abort("To address required")
 	}
+	validateAddress(p.To)
 	if len(p.Ids) == 0 {
 		sdk.Abort("Token IDs required")
 	}
@@ -358,6 +377,9 @@ func MintBatch(payload *string) *string {
 	}
 	if len(p.MaxSupplies) > 0 && len(p.Ids) != len(p.MaxSupplies) {
 		sdk.Abort("IDs and maxSupplies length mismatch")
+	}
+	for _, id := range p.Ids {
+		validateTokenId(id)
 	}
 
 	for i := 0; i < len(p.Ids); i++ {
@@ -478,9 +500,11 @@ func Burn(payload *string) *string {
 	if p.From == "" {
 		sdk.Abort("From address required")
 	}
+	validateAddress(p.From)
 	if p.Id == "" {
 		sdk.Abort("Token ID required")
 	}
+	validateTokenId(p.Id)
 	if p.Amount == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
@@ -524,11 +548,15 @@ func BurnBatch(payload *string) *string {
 	if p.From == "" {
 		sdk.Abort("From address required")
 	}
+	validateAddress(p.From)
 	if len(p.Ids) == 0 {
 		sdk.Abort("Token IDs required")
 	}
 	if len(p.Ids) != len(p.Amounts) {
 		sdk.Abort("IDs and amounts length mismatch")
+	}
+	for _, id := range p.Ids {
+		validateTokenId(id)
 	}
 
 	caller := sdk.GetEnvKey("msg.caller")
@@ -582,6 +610,8 @@ func SetURI(payload *string) *string {
 	if p.Id == "" {
 		sdk.Abort("Token ID required")
 	}
+	validateTokenId(p.Id)
+	validateURI(p.Uri)
 
 	setTokenURI(p.Id, p.Uri)
 	emitURI(p.Uri, p.Id)
@@ -610,6 +640,7 @@ func SetBaseURI(payload *string) *string {
 		sdk.Abort("Invalid payload")
 	}
 
+	validateBaseURI(p.BaseURI)
 	previousURI := getBaseURI()
 	sdk.StateSetObject("base_uri", p.BaseURI)
 	emitBaseURIChange(previousURI, p.BaseURI)
@@ -644,6 +675,7 @@ func ChangeOwner(payload *string) *string {
 	if p.NewOwner == "" {
 		sdk.Abort("New owner required")
 	}
+	validateAddress(p.NewOwner)
 
 	sdk.StateSetObject("owner", p.NewOwner)
 	emitOwnerChange(previousOwner, p.NewOwner)

@@ -10,21 +10,28 @@ MAGI NFT is a multi-token implementation following the ERC-1155 standard. It sup
 
 Token properties are configured at initialization via the `init` payload:
 
-| Property    | Type   | Description                                           |
-|-------------|--------|-------------------------------------------------------|
-| name        | string | Collection name (e.g., "Magi NFT")                    |
-| symbol      | string | Collection symbol (e.g., "MNFT")                      |
-| baseUri     | string | Base URI for token metadata                           |
-| trackMinted | bool   | Optional: if true, burned tokens cannot be re-minted  |
+| Property    | Type   | Description                                                          |
+|-------------|--------|----------------------------------------------------------------------|
+| name        | string | Collection name (e.g., "Magi NFT") — max 64 characters              |
+| symbol      | string | Collection symbol (e.g., "MNFT") — max 16 characters                |
+| baseUri     | string | Base URI for token metadata — must end with `/` when non-empty       |
+| trackMinted | bool   | Optional: if true, burned tokens cannot be re-minted                 |
+| metadata    | any    | Optional: arbitrary JSON collection metadata (description, icon, …)  |
 
 Example init payload:
 ```json
 {"name": "Magi NFT", "symbol": "MNFT", "baseUri": "https://api.magi.network/metadata/"}
 ```
 
-With permanent burn tracking:
+With collection metadata and permanent burn tracking:
 ```json
-{"name": "Magi NFT", "symbol": "MNFT", "baseUri": "https://api.magi.network/metadata/", "trackMinted": true}
+{
+  "name": "Magi NFT",
+  "symbol": "MNFT",
+  "baseUri": "https://api.magi.network/metadata/",
+  "trackMinted": true,
+  "metadata": {"description": "My collection", "icon": "https://example.com/icon.png"}
+}
 ```
 
 ## Features
@@ -305,6 +312,7 @@ Now `card-5` has custom stats, while all other cards still inherit from `card-0`
 | `safeBatchTransferFrom`| `{"from": string, "to": string, "ids": []string, "amounts": []uint64, "data": string}` | Owner/Operator |
 | `setApprovalForAll`    | `{"operator": string, "approved": bool}`                       | Any |
 | `setProperties`        | `{"id": string, "properties": any}`                            | Owner |
+| `setCollectionMetadata`| `{"metadata": any}`                                            | Owner |
 | `setURI`               | `{"id": string, "uri": string}`                                | Owner |
 | `setBaseURI`           | `{"baseUri": string}`                                          | Owner |
 | `pause`                | -                                                              | Owner |
@@ -322,8 +330,9 @@ Now `card-5` has custom stats, while all other cards still inherit from `card-0`
 | `totalMinted`      | `{"id": string}`                             | `{"totalMinted": uint64}`    |
 | `exists`           | `{"id": string}`                             | `{"exists": bool}`           |
 | `isSoulbound`      | `{"id": string}`                             | `{"soulbound": bool}`        |
-| `getProperties`    | `{"id": string}`                             | `{"properties": any\|null}`  |
-| `isApprovedForAll` | `{"account": string, "operator": string}`    | `{"approved": bool}`         |
+| `getProperties`         | `{"id": string}`                             | `{"properties": any\|null}`  |
+| `getCollectionMetadata` | -                                            | `{"metadata": any\|null}`    |
+| `isApprovedForAll`      | `{"account": string, "operator": string}`    | `{"approved": bool}`         |
 | `uri`              | `{"id": string}`                             | `{"uri": string}`            |
 | `getOwner`         | -                                            | `{"owner": string}`          |
 | `getInfo`          | -                                            | `{"name", "symbol", "baseUri", "trackMinted"}` |
@@ -400,6 +409,44 @@ Unlike ERC-20's per-token allowances, ERC-1155 uses operator approval. An approv
 }
 ```
 
+## Collection Metadata
+
+Each collection can have arbitrary JSON metadata attached to it, readable on-chain via `getStateByKeys` (key: `collection_metadata`) or via the `getCollectionMetadata` query.
+
+### Setting at Init
+
+```json
+{
+  "name": "Magi NFT",
+  "symbol": "MNFT",
+  "baseUri": "https://api.magi.network/metadata/",
+  "metadata": {"description": "My collection", "icon": "https://example.com/icon.png"}
+}
+```
+
+### Updating Later
+
+```json
+{"metadata": {"description": "Updated description", "icon": "https://example.com/new-icon.png"}}
+```
+
+Only the contract owner can update. Any valid JSON value is accepted.
+
+## Input Validation & Security
+
+The contract enforces the following limits on all user-controlled inputs:
+
+| Field       | Constraint                              |
+|-------------|-----------------------------------------|
+| `name`      | Max 64 characters                       |
+| `symbol`    | Max 16 characters                       |
+| `baseUri`   | Max 1024 characters, must end with `/`  |
+| `uri`       | Max 1024 characters                     |
+| `account`   | Max 256 characters, no `\|` character   |
+| `tokenId`   | Max 256 characters, no `\|` character   |
+
+The `\|` character is rejected in addresses and token IDs because it is used as a delimiter in internal state keys (e.g., `bal|account|tokenId`). Pipe injection could cause state key collisions.
+
 ## URI Management
 
 ### Default Behavior
@@ -463,6 +510,7 @@ magi_nft/
 │   ├── lifecycle_test.go  # Lifecycle tests
 │   ├── erc165_test.go     # ERC-165 interface tests
 │   ├── benchmark_test.go  # RC consumption benchmark
+│   ├── metadata_test.go   # Collection metadata tests
 │   └── artifacts/         # Compiled WASM
 └── readme.md
 ```
