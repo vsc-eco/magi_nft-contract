@@ -116,19 +116,13 @@ func TestChangeOwnerFailsWithEmptyAddress(t *testing.T) {
 	CallContract(t, ct, "changeOwner", changePayload, nil, ownerAddress, false, uint(150_000_000), "")
 }
 
-func TestChangeOwnerToSameOwner(t *testing.T) {
+func TestChangeOwnerToSameOwnerFails(t *testing.T) {
 	ct := SetupContractTest()
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
-	// Change owner to same address
+	// Change owner to same address should fail
 	changePayload := []byte(`{"newOwner":"hive:tibfox"}`)
-	CallContract(t, ct, "changeOwner", changePayload, nil, ownerAddress, true, uint(150_000_000), "")
-
-	// Owner should still be the same
-	result := CallContract(t, ct, "getOwner", nil, nil, ownerAddress, true, uint(150_000_000), "")
-	if result.Ret != `{"owner":"hive:tibfox"}` {
-		t.Errorf("Expected same owner, got %s", result.Ret)
-	}
+	CallContract(t, ct, "changeOwner", changePayload, nil, ownerAddress, false, uint(150_000_000), "")
 }
 
 func TestNewOwnerCanPause(t *testing.T) {

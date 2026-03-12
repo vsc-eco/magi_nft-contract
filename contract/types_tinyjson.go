@@ -662,6 +662,97 @@ func (v MintBatchPayload) MarshalTinyJSON(out *jwriter.Writer) {
 }
 
 // ===================================
+// MintSeriesPayload
+// ===================================
+
+func (v *MintSeriesPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "to":
+			v.To = string(in.String())
+		case "idPrefix":
+			v.IdPrefix = string(in.String())
+		case "startNumber":
+			v.StartNumber = uint64(in.Uint64())
+		case "count":
+			v.Count = uint64(in.Uint64())
+		case "amount":
+			v.Amount = uint64(in.Uint64())
+		case "maxSupply":
+			v.MaxSupply = uint64(in.Uint64())
+		case "soulbound":
+			v.Soulbound = bool(in.Bool())
+		case "properties":
+			v.Properties = string(in.Raw())
+		case "propertiesTemplate":
+			v.PropertiesTemplate = string(in.String())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+
+func (v MintSeriesPayload) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"to":`)
+	out.String(v.To)
+	out.RawString(`,"idPrefix":`)
+	out.String(v.IdPrefix)
+	out.RawString(`,"startNumber":`)
+	out.Uint64(v.StartNumber)
+	out.RawString(`,"count":`)
+	out.Uint64(v.Count)
+	out.RawString(`,"amount":`)
+	out.Uint64(v.Amount)
+	out.RawString(`,"maxSupply":`)
+	out.Uint64(v.MaxSupply)
+	out.RawString(`,"soulbound":`)
+	out.Bool(v.Soulbound)
+	if v.Properties != "" {
+		out.RawString(`,"properties":`)
+		out.Raw([]byte(v.Properties), nil)
+	}
+	if v.PropertiesTemplate != "" {
+		out.RawString(`,"propertiesTemplate":`)
+		out.String(v.PropertiesTemplate)
+	}
+	out.RawByte('}')
+}
+
+func (v MintSeriesPayload) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	v.MarshalTinyJSON(&w)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+func (v *MintSeriesPayload) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	v.UnmarshalTinyJSON(&r)
+	return r.Error()
+}
+
+// ===================================
 // BurnPayload
 // ===================================
 
@@ -1774,5 +1865,144 @@ func (v PropertiesSetAttributes) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"id":`)
 	out.String(v.Id)
+	out.RawByte('}')
+}
+
+// ===================================
+// ApprovePayload (ERC-6909)
+// ===================================
+
+func (v *ApprovePayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "spender":
+			v.Spender = string(in.String())
+		case "id":
+			v.Id = string(in.String())
+		case "amount":
+			v.Amount = uint64(in.Uint64())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+
+func (v ApprovePayload) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"spender":`)
+	out.String(v.Spender)
+	out.RawString(`,"id":`)
+	out.String(v.Id)
+	out.RawString(`,"amount":`)
+	out.Uint64(v.Amount)
+	out.RawByte('}')
+}
+
+// ===================================
+// AllowancePayload (ERC-6909)
+// ===================================
+
+func (v *AllowancePayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "owner":
+			v.Owner = string(in.String())
+		case "spender":
+			v.Spender = string(in.String())
+		case "id":
+			v.Id = string(in.String())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+
+func (v AllowancePayload) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"owner":`)
+	out.String(v.Owner)
+	out.RawString(`,"spender":`)
+	out.String(v.Spender)
+	out.RawString(`,"id":`)
+	out.String(v.Id)
+	out.RawByte('}')
+}
+
+// ===================================
+// AllowanceResponse (ERC-6909)
+// ===================================
+
+func (v AllowanceResponse) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"amount":`)
+	out.Uint64(v.Amount)
+	out.RawByte('}')
+}
+
+// ===================================
+// ApprovalEvent (ERC-6909)
+// ===================================
+
+func (v ApprovalEvent) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"type":`)
+	out.String(v.Type)
+	out.RawString(`,"attributes":`)
+	v.Attributes.MarshalTinyJSON(out)
+	out.RawByte('}')
+}
+
+func (v ApprovalAttributes) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"owner":`)
+	out.String(v.Owner)
+	out.RawString(`,"spender":`)
+	out.String(v.Spender)
+	out.RawString(`,"id":`)
+	out.String(v.Id)
+	out.RawString(`,"amount":`)
+	out.Uint64(v.Amount)
 	out.RawByte('}')
 }

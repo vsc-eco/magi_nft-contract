@@ -64,22 +64,15 @@ func TestSafeTransferFromFailsWithInsufficientBalance(t *testing.T) {
 	CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, false, uint(150_000_000), "")
 }
 
-func TestSafeTransferFromWithZeroAmount(t *testing.T) {
+func TestSafeTransferFromWithZeroAmountFails(t *testing.T) {
 	ct := SetupContractTest()
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	mintPayload := []byte(`{"to":"hive:tibfox","id":"1","amount":100,"maxSupply":100,"data":""}`)
 	CallContract(t, ct, "mint", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
-	// Zero amount transfer is valid in ERC-1155 (no-op)
+	// Zero amount transfer should fail
 	transferPayload := []byte(`{"from":"hive:tibfox","to":"hive:recipient","id":"1","amount":0,"data":""}`)
-	CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
-
-	// Balance should remain unchanged
-	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
-	if result.Ret != `{"balance":100}` {
-		t.Errorf("Expected balance 100, got %s", result.Ret)
-	}
+	CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, false, uint(150_000_000), "")
 }
 
 func TestSafeTransferFromFailsWithEmptyRecipient(t *testing.T) {
@@ -92,22 +85,15 @@ func TestSafeTransferFromFailsWithEmptyRecipient(t *testing.T) {
 	CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, false, uint(150_000_000), "")
 }
 
-func TestSafeTransferFromSelfToSelf(t *testing.T) {
+func TestSafeTransferFromSelfToSelfFails(t *testing.T) {
 	ct := SetupContractTest()
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
 	mintPayload := []byte(`{"to":"hive:tibfox","id":"1","amount":100,"maxSupply":100,"data":""}`)
 	CallContract(t, ct, "mint", mintPayload, nil, ownerAddress, true, uint(150_000_000), "")
 
-	// Transfer to self should work
+	// Transfer to self should fail
 	transferPayload := []byte(`{"from":"hive:tibfox","to":"hive:tibfox","id":"1","amount":50,"data":""}`)
-	CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, true, uint(150_000_000), "")
-
-	// Balance should still be 100
-	balancePayload := []byte(`{"account":"hive:tibfox","id":"1"}`)
-	result := CallContract(t, ct, "balanceOf", balancePayload, nil, ownerAddress, true, uint(150_000_000), "")
-	if result.Ret != `{"balance":100}` {
-		t.Errorf("Expected balance 100, got %s", result.Ret)
-	}
+	CallContract(t, ct, "safeTransferFrom", transferPayload, nil, ownerAddress, false, uint(150_000_000), "")
 }
 
 // ===================================

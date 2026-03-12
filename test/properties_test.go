@@ -366,3 +366,49 @@ func TestMintBatchPropertiesOnlySetOnFirstMint(t *testing.T) {
 		t.Errorf("Expected first mint properties to persist, got %s", getResult.Ret)
 	}
 }
+
+// ===================================
+// MintBatch PropertiesTemplate Validation Tests
+// ===================================
+
+func TestMintBatchTemplateInBatch(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+
+	// Template is one of the batch IDs — should succeed
+	payload := []byte(`{"to":"hive:tibfox","ids":["tmpl","copy1","copy2"],"amounts":[1,1,1],"maxSupplies":[1,1,1],"properties":[{"rarity":"epic"},"",""],"propertiesTemplate":"tmpl","data":""}`)
+	CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, uint(200_000_000), "")
+
+	// Template token should have properties
+	result := CallContract(t, ct, "getProperties", []byte(`{"id":"tmpl"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"properties":{"rarity":"epic"}}` {
+		t.Errorf("Expected properties on template, got %s", result.Ret)
+	}
+}
+
+func TestMintBatchTemplateExternalNFT(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+
+	// Mint external template first
+	CallContract(t, ct, "mint", []byte(`{"to":"hive:tibfox","id":"ext-tmpl","amount":1,"maxSupply":1,"properties":{"base":true},"data":""}`), nil, ownerAddress, true, uint(150_000_000), "")
+
+	// MintBatch referencing external template — should succeed
+	payload := []byte(`{"to":"hive:tibfox","ids":["c1","c2"],"amounts":[1,1],"maxSupplies":[1,1],"propertiesTemplate":"ext-tmpl","data":""}`)
+	CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, true, uint(150_000_000), "")
+
+	// Copies should exist
+	result := CallContract(t, ct, "balanceOf", []byte(`{"account":"hive:tibfox","id":"c1"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"balance":1}` {
+		t.Errorf("Expected balance 1 for c1, got %s", result.Ret)
+	}
+}
+
+func TestMintBatchTemplateNonExistentFails(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+
+	// Template not in batch and doesn't exist — should fail
+	payload := []byte(`{"to":"hive:tibfox","ids":["a","b"],"amounts":[1,1],"maxSupplies":[1,1],"propertiesTemplate":"ghost","data":""}`)
+	CallContract(t, ct, "mintBatch", payload, nil, ownerAddress, false, uint(150_000_000), "")
+}
