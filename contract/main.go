@@ -46,6 +46,17 @@ func getOwner() (string, bool) {
 	return *i, *i == *caller
 }
 
+// getOwnerAddress returns just the contract owner address without checking the caller.
+// Use this when you only need the owner address (e.g., soulbound checks) to avoid
+// a redundant GetEnvKey("msg.caller") read.
+func getOwnerAddress() string {
+	i := sdk.StateGetObject("owner")
+	if i == nil || *i == "" {
+		return ""
+	}
+	return *i
+}
+
 // =========================
 // Pausable Functions
 // =========================

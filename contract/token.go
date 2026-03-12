@@ -26,6 +26,9 @@ func Init(payload *string) *string {
 
 	// Only contract owner can initialize
 	owner := sdk.GetEnvKey("contract.owner")
+	if owner == nil {
+		sdk.Abort("Contract owner not set")
+	}
 	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
@@ -114,6 +117,12 @@ func SafeTransferFrom(payload *string) *string {
 		sdk.Abort("Token ID required")
 	}
 	validateTokenId(p.Id)
+	if p.Amount == 0 {
+		sdk.Abort("Amount must be greater than 0")
+	}
+	if p.From == p.To {
+		sdk.Abort("Cannot transfer to self")
+	}
 
 	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
@@ -121,14 +130,20 @@ func SafeTransferFrom(payload *string) *string {
 	}
 	operator := *caller
 
-	// Check authorization
+	// Check authorization: owner, operator (blanket), or per-token allowance
 	if !isApprovedOrOwner(operator, p.From) {
-		sdk.Abort("Not authorized")
+		// Check per-token allowance (ERC-6909)
+		allowed := getAllowance(p.From, operator, p.Id)
+		if allowed < p.Amount {
+			sdk.Abort("Not authorized")
+		}
+		// Decrement allowance
+		setAllowance(p.From, operator, p.Id, allowed-p.Amount)
 	}
 
-	// Check soulbound - owner can transfer, recipients cannot
-	owner, _ := getOwner()
-	if isSoulbound(p.Id) && p.From != owner {
+	// Check soulbound - contract owner can transfer, recipients cannot
+	ownerAddr := getOwnerAddress()
+	if isSoulbound(p.Id) && p.From != ownerAddr {
 		sdk.Abort("Token is soulbound")
 	}
 
@@ -173,6 +188,9 @@ func SafeBatchTransferFrom(payload *string) *string {
 	if len(p.Ids) != len(p.Amounts) {
 		sdk.Abort("IDs and amounts length mismatch")
 	}
+	if p.From == p.To {
+		sdk.Abort("Cannot transfer to self")
+	}
 	for _, id := range p.Ids {
 		validateTokenId(id)
 	}
@@ -183,15 +201,23 @@ func SafeBatchTransferFrom(payload *string) *string {
 	}
 	operator := *caller
 
-	// Check authorization
-	if !isApprovedOrOwner(operator, p.From) {
-		sdk.Abort("Not authorized")
-	}
+	// Check authorization: owner, operator (blanket), or per-token allowance
+	useAllowance := !isApprovedOrOwner(operator, p.From)
 
 	// Check soulbound and transfer each token type
-	owner, _ := getOwner()
+	ownerAddr := getOwnerAddress()
 	for i := 0; i < len(p.Ids); i++ {
-		if isSoulbound(p.Ids[i]) && p.From != owner {
+		if p.Amounts[i] == 0 {
+			sdk.Abort("Amount must be greater than 0")
+		}
+		if useAllowance {
+			allowed := getAllowance(p.From, operator, p.Ids[i])
+			if allowed < p.Amounts[i] {
+				sdk.Abort("Not authorized")
+			}
+			setAllowance(p.From, operator, p.Ids[i], allowed-p.Amounts[i])
+		}
+		if isSoulbound(p.Ids[i]) && p.From != ownerAddr {
 			sdk.Abort("Token is soulbound")
 		}
 		decBalance(p.From, p.Ids[i], p.Amounts[i])
@@ -241,6 +267,82 @@ func SetApprovalForAll(payload *string) *string {
 	setApprovalForAllInternal(account, p.Operator, p.Approved)
 	emitApprovalForAll(account, p.Operator, p.Approved)
 	return jsonResponse(SuccessResponse{Success: true})
+}
+
+// ===================================
+// ERC-6909 Per-Token Approval Functions
+// ===================================
+
+// Approve sets a per-token allowance for a spender (ERC-6909 pattern).
+// Payload: {"spender": "hive:marketplace", "id": "card-1", "amount": 1}
+//
+//go:wasmexport approve
+func Approve(payload *string) *string {
+	assertInit()
+	if payload == nil || *payload == "" {
+		sdk.Abort("Payload required")
+	}
+
+	var p ApprovePayload
+	r := jlexer.Lexer{Data: []byte(*payload)}
+	p.UnmarshalTinyJSON(&r)
+	if r.Error() != nil {
+		sdk.Abort("Invalid payload")
+	}
+
+	if p.Spender == "" {
+		sdk.Abort("Spender required")
+	}
+	validateAddress(p.Spender)
+	if p.Id == "" {
+		sdk.Abort("Token ID required")
+	}
+	validateTokenId(p.Id)
+
+	caller := sdk.GetEnvKey("msg.caller")
+	if caller == nil {
+		sdk.Abort("Caller required")
+	}
+	account := *caller
+
+	if account == p.Spender {
+		sdk.Abort("Cannot approve self")
+	}
+
+	setAllowance(account, p.Spender, p.Id, p.Amount)
+	emitApproval(account, p.Spender, p.Id, p.Amount)
+	return jsonResponse(SuccessResponse{Success: true})
+}
+
+// Allowance returns the per-token allowance for a spender (ERC-6909 pattern).
+// Payload: {"owner": "hive:tibfox", "spender": "hive:marketplace", "id": "card-1"}
+//
+//go:wasmexport allowance
+func Allowance(payload *string) *string {
+	assertInit()
+	if payload == nil || *payload == "" {
+		sdk.Abort("Payload required")
+	}
+
+	var p AllowancePayload
+	r := jlexer.Lexer{Data: []byte(*payload)}
+	p.UnmarshalTinyJSON(&r)
+	if r.Error() != nil {
+		sdk.Abort("Invalid payload")
+	}
+
+	if p.Owner == "" {
+		sdk.Abort("Owner required")
+	}
+	if p.Spender == "" {
+		sdk.Abort("Spender required")
+	}
+	if p.Id == "" {
+		sdk.Abort("Token ID required")
+	}
+
+	amount := getAllowance(p.Owner, p.Spender, p.Id)
+	return jsonResponse(AllowanceResponse{Amount: amount})
 }
 
 // ===================================
@@ -382,6 +484,22 @@ func MintBatch(payload *string) *string {
 		validateTokenId(id)
 	}
 
+	// Validate propertiesTemplate before minting
+	if p.PropertiesTemplate != "" && len(p.Ids) > 1 {
+		found := false
+		for _, id := range p.Ids {
+			if id == p.PropertiesTemplate {
+				found = true
+				break
+			}
+		}
+		if !found {
+			if getMaxSupply(p.PropertiesTemplate) == 0 {
+				sdk.Abort("propertiesTemplate must be one of the batch IDs or an existing NFT")
+			}
+		}
+	}
+
 	for i := 0; i < len(p.Ids); i++ {
 		if p.Amounts[i] == 0 {
 			sdk.Abort("Amount must be greater than 0")
@@ -474,6 +592,160 @@ func MintBatch(payload *string) *string {
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
+// MintSeries creates a series of token IDs with a shared configuration.
+// Token IDs are generated as: idPrefix + (startNumber + i) for i in [0, count).
+// All tokens share the same amount, maxSupply, soulbound, and properties settings.
+// This avoids the large payload size of mintBatch when minting many identical tokens.
+// Payload: {"to": "hive:recipient", "idPrefix": "card-", "startNumber": 1, "count": 100, "amount": 1, "maxSupply": 1, "soulbound": false}
+// Only the contract owner can mint.
+//
+//go:wasmexport mintSeries
+func MintSeries(payload *string) *string {
+	assertInit()
+	assertNotPaused()
+	owner, isOwner := getOwner()
+	if !isOwner {
+		sdk.Abort("Must be owner to mint")
+	}
+	if payload == nil || *payload == "" {
+		sdk.Abort("Payload required")
+	}
+
+	var p MintSeriesPayload
+	r := jlexer.Lexer{Data: []byte(*payload)}
+	p.UnmarshalTinyJSON(&r)
+	if r.Error() != nil {
+		sdk.Abort("Invalid payload")
+	}
+
+	if p.To == "" {
+		sdk.Abort("To address required")
+	}
+	validateAddress(p.To)
+	if p.Count == 0 {
+		sdk.Abort("Count must be greater than 0")
+	}
+	if p.Amount == 0 {
+		sdk.Abort("Amount must be greater than 0")
+	}
+	if p.MaxSupply == 0 {
+		sdk.Abort("MaxSupply required (1 = unique, >1 = editioned)")
+	}
+	// Check startNumber + count doesn't overflow uint64
+	if p.StartNumber+p.Count < p.StartNumber {
+		sdk.Abort("StartNumber + Count overflows")
+	}
+	// Validate prefix for pipe characters (generated IDs use prefix + number)
+	for i := 0; i < len(p.IdPrefix); i++ {
+		if p.IdPrefix[i] == '|' {
+			sdk.Abort("Invalid character in ID prefix")
+		}
+	}
+	// Validate propertiesTemplate: must be within the generated range OR already exist as an NFT
+	if p.PropertiesTemplate != "" {
+		found := false
+		for j := uint64(0); j < p.Count; j++ {
+			if p.IdPrefix+uint64ToStr(p.StartNumber+j) == p.PropertiesTemplate {
+				found = true
+				break
+			}
+		}
+		if !found {
+			// Check if it already exists as a minted NFT
+			if getMaxSupply(p.PropertiesTemplate) == 0 {
+				sdk.Abort("propertiesTemplate must be one of the generated IDs or an existing NFT")
+			}
+			// Cannot set properties on an existing external template
+			if p.Properties != "" {
+				sdk.Abort("Cannot set properties when using an existing NFT as template")
+			}
+		}
+	}
+
+	ids := make([]string, p.Count)
+	amounts := make([]uint64, p.Count)
+
+	// Cache loop-invariant state reads
+	trackMinted := isTrackMintedEnabled()
+	setProps := p.Properties != "" && p.PropertiesTemplate == ""
+	setTemplateProps := p.Properties != "" && p.PropertiesTemplate != ""
+
+	for i := uint64(0); i < p.Count; i++ {
+		id := p.IdPrefix + uint64ToStr(p.StartNumber+i)
+		// Skip full validateTokenId — prefix already checked for '|' and digits can't contain '|'.
+		// Only need to verify length.
+		if len(id) > maxTokenIdLen {
+			sdk.Abort("Token ID exceeds maximum length")
+		}
+		ids[i] = id
+		amounts[i] = p.Amount
+
+		existingMax := getMaxSupply(id)
+		if existingMax == 0 {
+			// First mint — we know balance, totalSupply, totalMinted are all 0.
+			// Skip reads and write directly.
+			if p.Amount > p.MaxSupply {
+				sdk.Abort("Would exceed max supply")
+			}
+			setMaxSupply(id, p.MaxSupply)
+			if p.Soulbound {
+				setSoulbound(id)
+			}
+			// When using propertiesTemplate, only the template token gets properties stored;
+			// copies inherit via the template relationship event.
+			if setProps || (setTemplateProps && id == p.PropertiesTemplate) {
+				setTokenProperties(id, p.Properties)
+				emitPropertiesSet(id)
+			}
+			if trackMinted {
+				sdk.StateSetObject(totalMintedKey(id), string(u64ToBytes(p.Amount)))
+			}
+			setBalance(p.To, id, p.Amount)
+			sdk.StateSetObject(totalSupplyKey(id), string(u64ToBytes(p.Amount)))
+			emitTokenCreated(id, p.MaxSupply, p.Soulbound)
+		} else {
+			// Subsequent mint — need to read existing state
+			if p.MaxSupply != existingMax {
+				sdk.Abort("MaxSupply mismatch with existing token")
+			}
+			if trackMinted {
+				currentMinted := getTotalMinted(id)
+				newMinted := safeAdd(currentMinted, p.Amount)
+				if newMinted > existingMax {
+					sdk.Abort("Would exceed max supply")
+				}
+				incTotalMinted(id, p.Amount)
+			} else {
+				currentTotal := getTotalSupply(id)
+				newTotal := safeAdd(currentTotal, p.Amount)
+				if newTotal > existingMax {
+					sdk.Abort("Would exceed max supply")
+				}
+			}
+			incBalance(p.To, id, p.Amount)
+			incTotalSupply(id, p.Amount)
+		}
+	}
+	emitTransferBatch(owner, "", p.To, ids, amounts) // Mint: from is zero address
+
+	// Emit template relationship if propertiesTemplate is set
+	if p.PropertiesTemplate != "" {
+		templateId := p.PropertiesTemplate
+		// All generated IDs that aren't the template are copies
+		copyIds := make([]string, 0, len(ids))
+		for _, id := range ids {
+			if id != templateId {
+				copyIds = append(copyIds, id)
+			}
+		}
+		if len(copyIds) > 0 {
+			emitTemplateMint(templateId, copyIds)
+		}
+	}
+
+	return jsonResponse(SuccessResponse{Success: true})
+}
+
 // ===================================
 // Burn Functions
 // ===================================
@@ -515,9 +787,15 @@ func Burn(payload *string) *string {
 	}
 	operator := *caller
 
-	// Check authorization
+	// Check authorization: owner, operator (blanket), or per-token allowance
 	if !isApprovedOrOwner(operator, p.From) {
-		sdk.Abort("Not authorized")
+		// Check per-token allowance (ERC-6909)
+		allowed := getAllowance(p.From, operator, p.Id)
+		if allowed < p.Amount {
+			sdk.Abort("Not authorized")
+		}
+		// Decrement allowance
+		setAllowance(p.From, operator, p.Id, allowed-p.Amount)
 	}
 
 	decBalance(p.From, p.Id, p.Amount)
@@ -565,14 +843,19 @@ func BurnBatch(payload *string) *string {
 	}
 	operator := *caller
 
-	// Check authorization
-	if !isApprovedOrOwner(operator, p.From) {
-		sdk.Abort("Not authorized")
-	}
+	// Check authorization: owner, operator (blanket), or per-token allowance
+	useAllowance := !isApprovedOrOwner(operator, p.From)
 
 	for i := 0; i < len(p.Ids); i++ {
 		if p.Amounts[i] == 0 {
 			sdk.Abort("Amount must be greater than 0")
+		}
+		if useAllowance {
+			allowed := getAllowance(p.From, operator, p.Ids[i])
+			if allowed < p.Amounts[i] {
+				sdk.Abort("Not authorized")
+			}
+			setAllowance(p.From, operator, p.Ids[i], allowed-p.Amounts[i])
 		}
 		decBalance(p.From, p.Ids[i], p.Amounts[i])
 		decTotalSupply(p.Ids[i], p.Amounts[i])
@@ -676,6 +959,9 @@ func ChangeOwner(payload *string) *string {
 		sdk.Abort("New owner required")
 	}
 	validateAddress(p.NewOwner)
+	if p.NewOwner == previousOwner {
+		sdk.Abort("Already the owner")
+	}
 
 	sdk.StateSetObject("owner", p.NewOwner)
 	emitOwnerChange(previousOwner, p.NewOwner)
@@ -711,7 +997,7 @@ func Unpause(_ *string) *string {
 	if !isPaused() {
 		sdk.Abort("Not paused")
 	}
-	sdk.StateSetObject("paused", "0")
+	sdk.StateDeleteObject("paused")
 	emitUnpaused(owner)
 	return jsonResponse(SuccessResponse{Success: true})
 }
@@ -837,7 +1123,7 @@ func URI(payload *string) *string {
 //go:wasmexport getOwner
 func GetOwnerExport(_ *string) *string {
 	assertInit()
-	owner, _ := getOwner()
+	owner := getOwnerAddress()
 	return jsonResponse(OwnerResponse{Owner: owner})
 }
 

@@ -41,6 +41,20 @@ type SetApprovalForAllPayload struct {
 	Approved bool   `json:"approved"`
 }
 
+// ApprovePayload for approve action (ERC-6909 per-token allowance)
+type ApprovePayload struct {
+	Spender string `json:"spender"`
+	Id      string `json:"id"`
+	Amount  uint64 `json:"amount"`
+}
+
+// AllowancePayload for allowance query (ERC-6909)
+type AllowancePayload struct {
+	Owner   string `json:"owner"`
+	Spender string `json:"spender"`
+	Id      string `json:"id"`
+}
+
 // BalanceOfPayload for balanceOf query
 type BalanceOfPayload struct {
 	Account string `json:"account"`
@@ -81,6 +95,21 @@ type MintBatchPayload struct {
 	Properties         []string `json:"properties"`         // Optional: per-token arbitrary JSON properties
 	PropertiesTemplate string   `json:"propertiesTemplate"` // Optional: token ID to inherit properties from (tokens without explicit properties get this template)
 	Data               string   `json:"data"`
+}
+
+// MintSeriesPayload for mintSeries action.
+// Mints `count` tokens with IDs: idPrefix + (startNumber + i) for i in [0, count).
+// All tokens share the same amount, maxSupply, soulbound, and properties settings.
+type MintSeriesPayload struct {
+	To          string `json:"to"`
+	IdPrefix    string `json:"idPrefix"`
+	StartNumber uint64 `json:"startNumber"`
+	Count       uint64 `json:"count"`
+	Amount      uint64 `json:"amount"`     // per token
+	MaxSupply   uint64 `json:"maxSupply"`  // per token (1 = unique, >1 = editioned)
+	Soulbound          bool   `json:"soulbound"`          // same for all tokens
+	Properties         string `json:"properties"`         // optional JSON, same for all tokens
+	PropertiesTemplate string `json:"propertiesTemplate"` // optional: first ID in series becomes template
 }
 
 // TotalSupplyPayload for totalSupply query
@@ -211,6 +240,11 @@ type IsSoulboundResponse struct {
 // IsApprovedResponse for isApprovedForAll query
 type IsApprovedResponse struct {
 	Approved bool `json:"approved"`
+}
+
+// AllowanceResponse for allowance query (ERC-6909)
+type AllowanceResponse struct {
+	Amount uint64 `json:"amount"`
 }
 
 // URIResponse for uri query
@@ -392,4 +426,17 @@ type PropertiesSetEvent struct {
 
 type PropertiesSetAttributes struct {
 	Id string `json:"id"`
+}
+
+// ApprovalEvent emitted for per-token allowance changes (ERC-6909)
+type ApprovalEvent struct {
+	Type       string             `json:"type"`
+	Attributes ApprovalAttributes `json:"attributes"`
+}
+
+type ApprovalAttributes struct {
+	Owner   string `json:"owner"`
+	Spender string `json:"spender"`
+	Id      string `json:"id"`
+	Amount  uint64 `json:"amount"`
 }

@@ -40,7 +40,9 @@ With collection metadata and permanent burn tracking:
 - **Supply Enforcement**: Required `maxSupply` on mint (1 = unique NFT, >1 = editioned)
 - **Soulbound Tokens**: Non-transferable tokens for badges, credentials, memberships
 - **Batch Operations**: Efficient batch minting, burning, and transfers
-- **Operator Approval**: Approve operators to manage all your tokens
+- **Series Minting**: Compact single-payload mint for large runs of sequential IDs (`mintSeries`)
+- **Operator Approval**: Approve operators to manage all your tokens (ERC-1155)
+- **Per-Token Approval**: Approve specific token amounts per spender (ERC-6909)
 - **Token Properties**: Attach arbitrary JSON metadata to tokens at mint time
 - **Properties Templates**: Share properties across tokens with template inheritance (saves ~84% RC)
 - **Custom URIs**: Set individual URIs per token or use baseUri fallback
@@ -73,13 +75,14 @@ With collection metadata and permanent burn tracking:
 |---------|--------|
 | `supportsInterface` | ERC-165 Standard |
 | `totalSupply` / `exists` | ERC-1155 Supply Extension |
-| `mint` / `mintBatch` | Common pattern (not in spec) |
+| `mint` / `mintBatch` / `mintSeries` | Common pattern (not in spec) |
 | `burn` / `burnBatch` | Common pattern (not in spec) |
 | `pause` / `unpause` | OpenZeppelin Pausable |
 | `changeOwner` / `getOwner` | OpenZeppelin Ownable |
 | `maxSupply` | Custom |
 | `trackMinted` / `totalMinted` | Custom |
 | `soulbound` / `isSoulbound` | Inspired by EIP-5192 |
+| `approve` / `allowance` | ERC-6909 (per-token approval) |
 | `setProperties` / `getProperties` | Custom |
 | `propertiesTemplate` (on mint) | Custom |
 | `setURI` / `setBaseURI` | Custom |
@@ -297,6 +300,69 @@ Now `card-5` has custom stats, while all other cards still inherit from `card-0`
 - Updating the template's properties via `setProperties` affects all children immediately
 - Only one level of template indirection is supported (no chaining)
 
+## Mint Series
+
+`mintSeries` is a compact alternative to `mintBatch` for minting a large run of tokens that share the same settings. Instead of sending an array of IDs, you provide a prefix, a start number, and a count — the contract generates the IDs `idPrefix + (startNumber + i)`.
+
+This solves the JSON payload size limit when minting hundreds of NFTs in one transaction where the IDs are the only thing that differs.
+
+### Payload
+
+```json
+{
+  "to": "hive:collector",
+  "idPrefix": "card-",
+  "startNumber": 1,
+  "count": 100,
+  "amount": 1,
+  "maxSupply": 1,
+  "soulbound": false,
+  "properties": {"rarity": "common"}
+}
+```
+
+This mints `card-1` through `card-100`, each unique (maxSupply=1), all with the same properties.
+
+### With Template Properties
+
+`mintSeries` supports `propertiesTemplate` just like `mintBatch`. The template ID must be one of the generated IDs. Only the template token stores properties on-chain; all other tokens inherit via the `templateMint` event.
+
+```json
+{
+  "to": "hive:collector",
+  "idPrefix": "card-",
+  "startNumber": 1,
+  "count": 100,
+  "amount": 1,
+  "maxSupply": 1,
+  "properties": {"rarity": "common", "power": 42},
+  "propertiesTemplate": "card-1"
+}
+```
+
+Here `card-1` stores the properties and serves as the template. `card-2` through `card-100` inherit from it. This saves ~5% RC compared to storing properties on every token.
+
+### Rules
+
+- `idPrefix` may not contain `|`
+- Generated IDs are validated the same as any token ID (max 256 chars, no `|`)
+- `amount`, `maxSupply`, `soulbound`, and `properties` apply identically to every token in the series
+- When `propertiesTemplate` is set, only the template token stores properties; copies inherit via `templateMint` event
+- `propertiesTemplate` must be one of the generated IDs (e.g. `idPrefix + startNumber`)
+- Properties and soulbound status are set on **first mint** only (like `mint`/`mintBatch`)
+- Emits a single `TransferBatch` event covering all minted tokens
+- Count is unlimited — gas is the only constraint
+
+### RC cost vs mintBatch
+
+| Approach | What varies per token |
+|----------|-----------------------|
+| `mintBatch` | Full ID string in payload |
+| `mintSeries` | Nothing — IDs are computed on-chain |
+| `mintSeries` + template | Nothing — IDs computed on-chain, properties stored once |
+
+For a 50-token run with template properties: `mintSeries` costs 12,056 RC vs `mintBatch` at 14,709 RC — **18% cheaper**. `mintSeries` skips redundant state reads on first mint (balance, totalSupply, totalMinted are known to be 0). Without template, `mintSeries` costs 12,057 RC. Both approaches avoid payload size limits, but `mintSeries` scales to any count in a single call.
+
 ## Functions
 
 ### Actions (State-Changing)
@@ -306,11 +372,13 @@ Now `card-5` has custom stats, while all other cards still inherit from `card-0`
 | `init`                 | `{"name": string, "symbol": string, "baseUri": string, "trackMinted": bool}` | ContractOwner |
 | `mint`                 | `{"to": string, "id": string, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "properties": any, "propertiesTemplate": string, "data": string}` | Owner |
 | `mintBatch`            | `{"to": string, "ids": []string, "amounts": []uint64, "maxSupplies": []uint64, "soulbound": []bool, "properties": []any, "propertiesTemplate": string, "data": string}` | Owner |
+| `mintSeries`           | `{"to": string, "idPrefix": string, "startNumber": uint64, "count": uint64, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "properties": any, "propertiesTemplate": string}` | Owner |
 | `burn`                 | `{"from": string, "id": string, "amount": uint64}`             | Owner |
 | `burnBatch`            | `{"from": string, "ids": []string, "amounts": []uint64}`       | Owner |
 | `safeTransferFrom`     | `{"from": string, "to": string, "id": string, "amount": uint64, "data": string}` | Owner/Operator |
 | `safeBatchTransferFrom`| `{"from": string, "to": string, "ids": []string, "amounts": []uint64, "data": string}` | Owner/Operator |
 | `setApprovalForAll`    | `{"operator": string, "approved": bool}`                       | Any |
+| `approve`              | `{"spender": string, "id": string, "amount": uint64}`          | Any |
 | `setProperties`        | `{"id": string, "properties": any}`                            | Owner |
 | `setCollectionMetadata`| `{"metadata": any}`                                            | Owner |
 | `setURI`               | `{"id": string, "uri": string}`                                | Owner |
@@ -333,6 +401,7 @@ Now `card-5` has custom stats, while all other cards still inherit from `card-0`
 | `getProperties`         | `{"id": string}`                             | `{"properties": any\|null}`  |
 | `getCollectionMetadata` | -                                            | `{"metadata": any\|null}`    |
 | `isApprovedForAll`      | `{"account": string, "operator": string}`    | `{"approved": bool}`         |
+| `allowance`             | `{"owner": string, "spender": string, "id": string}` | `{"amount": uint64}`  |
 | `uri`              | `{"id": string}`                             | `{"uri": string}`            |
 | `getOwner`         | -                                            | `{"owner": string}`          |
 | `getInfo`          | -                                            | `{"name", "symbol", "baseUri", "trackMinted"}` |
@@ -349,6 +418,7 @@ All events include `type` and `attributes`.
 | `TransferSingle` | `operator`, `from`, `to`, `id`, `value`       |
 | `TransferBatch`  | `operator`, `from`, `to`, `ids`, `values`     |
 | `ApprovalForAll` | `account`, `operator`, `approved`             |
+| `Approval`       | `owner`, `spender`, `id`, `amount`            |
 | `URI`            | `value`, `id`                                 |
 | `baseUriChange`  | `previousUri`, `newUri`                       |
 | `ownerChange`    | `previousOwner`, `newOwner`                   |
@@ -408,6 +478,58 @@ Unlike ERC-20's per-token allowances, ERC-1155 uses operator approval. An approv
   "payload": {"operator": "hive:marketplace", "approved": false}
 }
 ```
+
+## Per-Token Approval (ERC-6909)
+
+`setApprovalForAll` is a blanket approval — the operator gets access to **all** tokens. For finer control, use `approve` to grant a spender access to a specific token ID with a specific amount. This is cherry-picked from the [ERC-6909](https://eips.ethereum.org/EIPS/eip-6909) standard.
+
+### How It Works
+
+```
+1. User approves a spender for a specific token ID and amount
+2. Spender can transfer up to the approved amount of that token
+3. Allowance is decremented on each transfer
+4. Setting amount to 0 revokes the approval
+```
+
+Transfer authorization checks (in order):
+1. **Owner** — caller is the `from` address (always allowed)
+2. **Operator** — caller has blanket `setApprovalForAll` approval (no allowance consumed)
+3. **Allowance** — caller has sufficient per-token `approve` allowance (decremented on transfer)
+
+### Example: Approve a Marketplace for 1 NFT
+
+**Step 1: Approve**
+
+```json
+{
+  "action": "approve",
+  "payload": {"spender": "hive:marketplace", "id": "card-42", "amount": 1}
+}
+```
+
+**Step 2: Marketplace Transfers**
+
+```json
+{
+  "action": "safeTransferFrom",
+  "payload": {"from": "hive:seller", "to": "hive:buyer", "id": "card-42", "amount": 1, "data": ""}
+}
+```
+
+After the transfer, the allowance is 0 — the marketplace cannot transfer any more of this token.
+
+### RC Cost
+
+Per-token approval costs ~178 RC per call. Transfers via allowance cost ~408 RC (vs ~281 RC for owner transfers) due to the extra allowance read + write.
+
+| Authorization | `approve` | `safeTransferFrom` | Total |
+|---------------|---:|---:|---:|
+| Owner (direct) | — | 281 | 281 |
+| Operator (blanket) | 162 (one-time) | 281 | 281+ |
+| Allowance (per-token) | 178 | 408 | 586 |
+
+The per-token approach is more expensive per transfer but more secure — the spender can only touch exactly what was approved.
 
 ## Collection Metadata
 
@@ -497,11 +619,13 @@ magi_nft/
 │   ├── helpers_test.go    # Test utilities
 │   ├── init_test.go       # Initialization tests
 │   ├── mint_test.go       # Mint/MintBatch tests
+│   ├── mintseries_test.go # MintSeries tests
 │   ├── burn_test.go       # Burn/BurnBatch tests
 │   ├── transfer_test.go   # Transfer tests
 │   ├── balance_test.go    # Balance query tests
 │   ├── supply_test.go     # Supply management tests
-│   ├── approval_test.go   # Operator approval tests
+│   ├── approval_test.go   # Operator approval tests (ERC-1155)
+│   ├── approve_test.go    # Per-token approval tests (ERC-6909)
 │   ├── uri_test.go        # URI management tests
 │   ├── soulbound_test.go  # Soulbound token tests
 │   ├── properties_test.go # Token properties tests
@@ -517,41 +641,72 @@ magi_nft/
 
 ## RC Consumption
 
-| Function               | Avg RC  |
-|------------------------|---------|
-| Queries                | 100     |
-| unpause                | 110     |
-| pause                  | 122     |
-| burn                   | 185     |
-| setApprovalForAll      | 190     |
-| changeOwner            | 205     |
-| setBaseURI             | 230-360 |
-| burnBatch              | 245     |
-| safeTransferFrom       | 320-420 |
-| setProperties          | 300-400 |
-| mint                   | 360-400 |
-| mintBatch              | 450+    |
-| safeBatchTransferFrom  | 430+    |
-| setURI                 | 855     |
-| init                   | 1313    |
+| Function               | Avg RC   |
+|------------------------|----------|
+| Queries                | 100      |
+| unpause                | 100      |
+| pause                  | 106      |
+| setApprovalForAll      | 162      |
+| approve                | 178      |
+| changeOwner            | 183      |
+| burn (unique)          | 202      |
+| setBaseURI             | 272      |
+| safeTransferFrom (owner) | 281–348 |
+| safeTransferFrom (allowance) | 408 |
+| mint (no properties)   | 418      |
+| mint (with properties) | 427–1488 |
+| setProperties          | 608      |
+| setURI                 | 838      |
+| init                   | 1,298    |
+| mintSeries             | ~241 per token |
+| mintSeries (template)  | ~241 per token |
+| mintBatch              | ~285 per token (with template) |
+| safeBatchTransferFrom  | ~139 per token |
+| burnBatch              | ~87 per token  |
 
 ## Benchmark: Real-World Scenario
 
-RC consumption for a realistic NFT workflow using template properties (see `test/benchmark_test.go`):
+RC consumption for realistic NFT use-cases (see `test/benchmark_test.go`). All values in RC (1000 RC = 1 HBD in the wallet).
 
-| Step | RC (1000 = 1 HBD in the wallet) |
-|------|---:|
-| Init contract | 1,313 |
-| Mint 100 unique NFTs with template properties (2 batches of 50) — **total** | 29,144 |
-| Mint 100 unique NFTs with template properties (2 batches of 50) — **avg per batch** | 14,572 |
-| Mint 10,000 editions of 1 NFT with properties | 1,783 |
-| Transfer 10 unique NFTs (single) — **total** | 3,217 |
-| Transfer 10 unique NFTs (single) — **avg per transfer** | 321 |
-| Transfer 50 unique NFTs (batch) | 7,694 |
-| Transfer 500 editions | 421 |
-| Transfer 1,000 editions | 427 |
-| Burn 5 unique NFTs (single) — **total** | 1,085 |
-| Burn 5 unique NFTs (single) — **avg per burn** | 217 |
-| Burn 20 unique NFTs (batch) | 1,767 |
-| Burn 100 editions | 269 |
-| Burn 1,000 editions | 268 |
+### Minting
+
+| Function | Scenario | RC |
+|----------|----------|---:|
+| `init` | Init contract | 1,298 |
+| `mint` | 10 unique NFTs — total | 4,180 |
+| `mint` | 10 unique NFTs — avg per call | 418 |
+| `mint` | 10,000 editions of 1 NFT with properties | 1,755 |
+| `mintSeries` | 10 unique NFTs | 2,371 |
+| `mintSeries` | 50 unique NFTs | 12,057 |
+| `mintSeries` | 50 unique NFTs with template properties | 12,056 |
+| `mintBatch` | 50 unique NFTs with template — batch 1 (with properties) | 14,709 |
+| `mintBatch` | 50 unique NFTs with template — batch 2 (no properties) | 13,823 |
+| `mintBatch` | 100 unique NFTs (2×50) — total | 28,532 |
+| `mintBatch` | 100 unique NFTs (2×50) — avg per batch | 14,266 |
+
+### Transfers
+
+| Function | Scenario | RC |
+|----------|----------|---:|
+| `safeTransferFrom` | 10 unique NFTs (owner) — total | 2,816 |
+| `safeTransferFrom` | 10 unique NFTs (owner) — avg per call | 281 |
+| `setApprovalForAll` | Approve operator (one-time) | 162 |
+| `safeTransferFrom` | 10 unique NFTs (operator) — avg per call | 281 |
+| `approve` | 10 unique NFTs — total | 1,780 |
+| `approve` | 10 unique NFTs — avg per call | 178 |
+| `safeTransferFrom` | 10 unique NFTs (allowance) — total | 4,080 |
+| `safeTransferFrom` | 10 unique NFTs (allowance) — avg per call | 408 |
+| `safeBatchTransferFrom` | 50 unique NFTs | 6,962 |
+| `safeTransferFrom` | 1,000 editions | 348 |
+| `safeTransferFrom` | 500 editions | 335 |
+
+### Burns
+
+| Function | Scenario | RC |
+|----------|----------|---:|
+| `burn` | 5 unique NFTs — total | 1,010 |
+| `burn` | 5 unique NFTs — avg per call | 202 |
+| `burn` | 100 editions | 240 |
+| `burn` | 1,000 editions | 241 |
+| `burnBatch` | 20 unique NFTs — total | 1,748 |
+| `burnBatch` | 20 unique NFTs — avg per burn | 87 |

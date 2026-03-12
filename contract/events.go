@@ -88,6 +88,25 @@ func emitApprovalForAll(account, operator string, approved bool) {
 }
 
 // ======================
+// Approval Event (ERC-6909)
+// ======================
+
+func emitApproval(owner, spender, id string, amount uint64) {
+	event := ApprovalEvent{
+		Type: "Approval",
+		Attributes: ApprovalAttributes{
+			Owner:   owner,
+			Spender: spender,
+			Id:      id,
+			Amount:  amount,
+		},
+	}
+	w := jwriter.Writer{}
+	event.MarshalTinyJSON(&w)
+	sdk.Log(string(w.Buffer.BuildBytes()))
+}
+
+// ======================
 // URI Event (ERC-1155)
 // ======================
 

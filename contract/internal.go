@@ -110,8 +110,14 @@ func getBalance(account, tokenId string) uint64 {
 }
 
 // setBalance sets the balance of an address for a specific token ID.
+// Deletes the key when balance reaches 0 to avoid state bloat.
 func setBalance(account, tokenId string, amount uint64) {
-	sdk.StateSetObject(balanceKey(account, tokenId), string(u64ToBytes(amount)))
+	key := balanceKey(account, tokenId)
+	if amount == 0 {
+		sdk.StateDeleteObject(key)
+		return
+	}
+	sdk.StateSetObject(key, string(u64ToBytes(amount)))
 }
 
 // incBalance increments token balance of an address for a specific token ID.
@@ -151,12 +157,43 @@ func isApprovedForAllInternal(owner, operator string) bool {
 }
 
 // setApprovalForAllInternal sets operator approval for all tokens of an owner.
+// Deletes the key when revoking to avoid state bloat.
 func setApprovalForAllInternal(owner, operator string, approved bool) {
+	key := operatorKey(owner, operator)
 	if approved {
-		sdk.StateSetObject(operatorKey(owner, operator), "1")
+		sdk.StateSetObject(key, "1")
 	} else {
-		sdk.StateSetObject(operatorKey(owner, operator), "0")
+		sdk.StateDeleteObject(key)
 	}
+}
+
+// ===================================
+// Token Allowance Management (ERC-6909)
+// ===================================
+
+// allowanceKey returns the state key for per-token allowance.
+func allowanceKey(owner, spender, tokenId string) string {
+	return "allow|" + owner + "|" + spender + "|" + tokenId
+}
+
+// getAllowance returns the allowance for a spender on a specific token.
+func getAllowance(owner, spender, tokenId string) uint64 {
+	val := sdk.StateGetObject(allowanceKey(owner, spender, tokenId))
+	if val == nil || *val == "" {
+		return 0
+	}
+	return bytesToU64([]byte(*val))
+}
+
+// setAllowance sets the allowance for a spender on a specific token.
+// Deletes the key when allowance reaches 0 to avoid state bloat.
+func setAllowance(owner, spender, tokenId string, amount uint64) {
+	key := allowanceKey(owner, spender, tokenId)
+	if amount == 0 {
+		sdk.StateDeleteObject(key)
+		return
+	}
+	sdk.StateSetObject(key, string(u64ToBytes(amount)))
 }
 
 // ===================================
@@ -416,6 +453,25 @@ func bytesToU64(b []byte) uint64 {
 	copy(buf, b)
 
 	return binary.LittleEndian.Uint64(buf)
+}
+
+// ===================================
+// uint64 -> string Helper
+// ===================================
+
+// uint64ToStr converts a uint64 to its decimal string representation.
+func uint64ToStr(n uint64) string {
+	if n == 0 {
+		return "0"
+	}
+	buf := make([]byte, 20) // max 20 decimal digits for uint64
+	pos := 20
+	for n > 0 {
+		pos--
+		buf[pos] = byte('0' + n%10)
+		n /= 10
+	}
+	return string(buf[pos:])
 }
 
 // ===================================

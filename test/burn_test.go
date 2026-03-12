@@ -384,3 +384,97 @@ func TestContractOwnerCanBurnIfApproved(t *testing.T) {
 		t.Errorf("Expected balance 70, got %s", balResult.Ret)
 	}
 }
+
+// ===================================
+// Burn via ERC-6909 Per-Token Allowance
+// ===================================
+
+func TestBurnViaAllowance(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	CallContract(t, ct, "mint", []byte(`{"to":"hive:holder","id":"card-1","amount":10,"maxSupply":10,"data":""}`), nil, ownerAddress, true, uint(150_000_000), "")
+
+	// Holder approves marketplace to burn 3
+	CallContract(t, ct, "approve", []byte(`{"spender":"hive:marketplace","id":"card-1","amount":3}`), nil, "hive:holder", true, uint(150_000_000), "")
+
+	// Marketplace burns 2 via allowance
+	CallContract(t, ct, "burn", []byte(`{"from":"hive:holder","id":"card-1","amount":2}`), nil, "hive:marketplace", true, uint(150_000_000), "")
+
+	// Balance should be 8
+	result := CallContract(t, ct, "balanceOf", []byte(`{"account":"hive:holder","id":"card-1"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"balance":8}` {
+		t.Errorf("Expected balance 8, got %s", result.Ret)
+	}
+
+	// Allowance should be decremented to 1
+	result = CallContract(t, ct, "allowance", []byte(`{"owner":"hive:holder","spender":"hive:marketplace","id":"card-1"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"amount":1}` {
+		t.Errorf("Expected allowance 1, got %s", result.Ret)
+	}
+}
+
+func TestBurnViaAllowanceExceedsFails(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	CallContract(t, ct, "mint", []byte(`{"to":"hive:holder","id":"card-1","amount":10,"maxSupply":10,"data":""}`), nil, ownerAddress, true, uint(150_000_000), "")
+
+	// Approve for 2
+	CallContract(t, ct, "approve", []byte(`{"spender":"hive:marketplace","id":"card-1","amount":2}`), nil, "hive:holder", true, uint(150_000_000), "")
+
+	// Try to burn 5 — exceeds allowance
+	CallContract(t, ct, "burn", []byte(`{"from":"hive:holder","id":"card-1","amount":5}`), nil, "hive:marketplace", false, uint(150_000_000), "")
+}
+
+func TestBurnBatchViaAllowance(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	CallContract(t, ct, "mintBatch", []byte(`{"to":"hive:holder","ids":["a","b"],"amounts":[10,10],"maxSupplies":[10,10],"data":""}`), nil, ownerAddress, true, uint(150_000_000), "")
+
+	// Approve both tokens
+	CallContract(t, ct, "approve", []byte(`{"spender":"hive:marketplace","id":"a","amount":5}`), nil, "hive:holder", true, uint(150_000_000), "")
+	CallContract(t, ct, "approve", []byte(`{"spender":"hive:marketplace","id":"b","amount":3}`), nil, "hive:holder", true, uint(150_000_000), "")
+
+	// Batch burn within allowance
+	CallContract(t, ct, "burnBatch", []byte(`{"from":"hive:holder","ids":["a","b"],"amounts":[2,3]}`), nil, "hive:marketplace", true, uint(150_000_000), "")
+
+	// Check remaining allowances
+	result := CallContract(t, ct, "allowance", []byte(`{"owner":"hive:holder","spender":"hive:marketplace","id":"a"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"amount":3}` {
+		t.Errorf("Expected allowance 3 for a, got %s", result.Ret)
+	}
+	result = CallContract(t, ct, "allowance", []byte(`{"owner":"hive:holder","spender":"hive:marketplace","id":"b"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"amount":0}` {
+		t.Errorf("Expected allowance 0 for b, got %s", result.Ret)
+	}
+
+	// Check balances
+	result = CallContract(t, ct, "balanceOf", []byte(`{"account":"hive:holder","id":"a"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"balance":8}` {
+		t.Errorf("Expected balance 8 for a, got %s", result.Ret)
+	}
+	result = CallContract(t, ct, "balanceOf", []byte(`{"account":"hive:holder","id":"b"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"balance":7}` {
+		t.Errorf("Expected balance 7 for b, got %s", result.Ret)
+	}
+}
+
+func TestBurnBatchViaAllowanceFailsIfOneExceeds(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	CallContract(t, ct, "mintBatch", []byte(`{"to":"hive:holder","ids":["a","b"],"amounts":[10,10],"maxSupplies":[10,10],"data":""}`), nil, ownerAddress, true, uint(150_000_000), "")
+
+	CallContract(t, ct, "approve", []byte(`{"spender":"hive:marketplace","id":"a","amount":5}`), nil, "hive:holder", true, uint(150_000_000), "")
+	CallContract(t, ct, "approve", []byte(`{"spender":"hive:marketplace","id":"b","amount":1}`), nil, "hive:holder", true, uint(150_000_000), "")
+
+	// Batch burn — b exceeds allowance
+	CallContract(t, ct, "burnBatch", []byte(`{"from":"hive:holder","ids":["a","b"],"amounts":[2,3]}`), nil, "hive:marketplace", false, uint(150_000_000), "")
+}
+
+func TestBurnViaAllowanceNoApprovalFails(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	CallContract(t, ct, "mint", []byte(`{"to":"hive:holder","id":"card-1","amount":10,"maxSupply":10,"data":""}`), nil, ownerAddress, true, uint(150_000_000), "")
+
+	// No approval — burn should fail
+	CallContract(t, ct, "burn", []byte(`{"from":"hive:holder","id":"card-1","amount":1}`), nil, "hive:marketplace", false, uint(150_000_000), "")
+}
