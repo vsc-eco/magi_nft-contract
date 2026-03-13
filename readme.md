@@ -302,7 +302,7 @@ Now `card-5` has custom stats, while all other cards still inherit from `card-0`
 
 ## Mint Series
 
-`mintSeries` is a compact alternative to `mintBatch` for minting a large run of tokens that share the same settings. Instead of sending an array of IDs, you provide a prefix, a start number, and a count — the contract generates the IDs `idPrefix + (startNumber + i)`.
+`mintSeries` is a compact alternative to `mintBatch` for minting a large run of tokens that share the same settings. Instead of sending an array of IDs, you provide a prefix, an optional suffix, a start number, and a count — the contract generates the IDs `idPrefix + (startNumber + i) + idSuffix`.
 
 This solves the JSON payload size limit when minting hundreds of NFTs in one transaction where the IDs are the only thing that differs.
 
@@ -312,6 +312,7 @@ This solves the JSON payload size limit when minting hundreds of NFTs in one tra
 {
   "to": "hive:collector",
   "idPrefix": "card-",
+  "idSuffix": "-rare",
   "startNumber": 1,
   "count": 100,
   "amount": 1,
@@ -321,7 +322,7 @@ This solves the JSON payload size limit when minting hundreds of NFTs in one tra
 }
 ```
 
-This mints `card-1` through `card-100`, each unique (maxSupply=1), all with the same properties.
+This mints `card-1-rare` through `card-100-rare`, each unique (maxSupply=1), all with the same properties. The `idSuffix` field is optional — omit it to generate IDs like `card-1` through `card-100`.
 
 ### With Template Properties
 
@@ -331,24 +332,26 @@ This mints `card-1` through `card-100`, each unique (maxSupply=1), all with the 
 {
   "to": "hive:collector",
   "idPrefix": "card-",
+  "idSuffix": "-rare",
   "startNumber": 1,
   "count": 100,
   "amount": 1,
   "maxSupply": 1,
   "properties": {"rarity": "common", "power": 42},
-  "propertiesTemplate": "card-1"
+  "propertiesTemplate": "card-1-rare"
 }
 ```
 
-Here `card-1` stores the properties and serves as the template. `card-2` through `card-100` inherit from it. This saves ~5% RC compared to storing properties on every token.
+Here `card-1-rare` stores the properties and serves as the template. `card-2-rare` through `card-100-rare` inherit from it. This saves ~5% RC compared to storing properties on every token.
 
 ### Rules
 
-- `idPrefix` may not contain `|`
+- `idPrefix` and `idSuffix` may not contain `|`
 - Generated IDs are validated the same as any token ID (max 256 chars, no `|`)
+- `idSuffix` is optional — when omitted, IDs are `idPrefix + number`
 - `amount`, `maxSupply`, `soulbound`, and `properties` apply identically to every token in the series
 - When `propertiesTemplate` is set, only the template token stores properties; copies inherit via `templateMint` event
-- `propertiesTemplate` must be one of the generated IDs (e.g. `idPrefix + startNumber`)
+- `propertiesTemplate` must be one of the generated IDs (e.g. `idPrefix + startNumber + idSuffix`) or an existing NFT
 - Properties and soulbound status are set on **first mint** only (like `mint`/`mintBatch`)
 - Emits a single `TransferBatch` event covering all minted tokens
 - Count is unlimited — gas is the only constraint
@@ -372,7 +375,7 @@ For a 50-token run with template properties: `mintSeries` costs 12,056 RC vs `mi
 | `init`                 | `{"name": string, "symbol": string, "baseUri": string, "trackMinted": bool}` | ContractOwner |
 | `mint`                 | `{"to": string, "id": string, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "properties": any, "propertiesTemplate": string, "data": string}` | Owner |
 | `mintBatch`            | `{"to": string, "ids": []string, "amounts": []uint64, "maxSupplies": []uint64, "soulbound": []bool, "properties": []any, "propertiesTemplate": string, "data": string}` | Owner |
-| `mintSeries`           | `{"to": string, "idPrefix": string, "startNumber": uint64, "count": uint64, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "properties": any, "propertiesTemplate": string}` | Owner |
+| `mintSeries`           | `{"to": string, "idPrefix": string, "idSuffix": string, "startNumber": uint64, "count": uint64, "amount": uint64, "maxSupply": uint64, "soulbound": bool, "properties": any, "propertiesTemplate": string}` | Owner |
 | `burn`                 | `{"from": string, "id": string, "amount": uint64}`             | Owner |
 | `burnBatch`            | `{"from": string, "ids": []string, "amounts": []uint64}`       | Owner |
 | `safeTransferFrom`     | `{"from": string, "to": string, "id": string, "amount": uint64, "data": string}` | Owner/Operator |

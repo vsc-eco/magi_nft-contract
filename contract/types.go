@@ -98,15 +98,16 @@ type MintBatchPayload struct {
 }
 
 // MintSeriesPayload for mintSeries action.
-// Mints `count` tokens with IDs: idPrefix + (startNumber + i) for i in [0, count).
+// Mints `count` tokens with IDs: idPrefix + (startNumber + i) + idSuffix for i in [0, count).
 // All tokens share the same amount, maxSupply, soulbound, and properties settings.
 type MintSeriesPayload struct {
-	To          string `json:"to"`
-	IdPrefix    string `json:"idPrefix"`
-	StartNumber uint64 `json:"startNumber"`
-	Count       uint64 `json:"count"`
-	Amount      uint64 `json:"amount"`     // per token
-	MaxSupply   uint64 `json:"maxSupply"`  // per token (1 = unique, >1 = editioned)
+	To                 string `json:"to"`
+	IdPrefix           string `json:"idPrefix"`
+	IdSuffix           string `json:"idSuffix"`           // optional: appended after the number
+	StartNumber        uint64 `json:"startNumber"`
+	Count              uint64 `json:"count"`
+	Amount             uint64 `json:"amount"`             // per token
+	MaxSupply          uint64 `json:"maxSupply"`          // per token (1 = unique, >1 = editioned)
 	Soulbound          bool   `json:"soulbound"`          // same for all tokens
 	Properties         string `json:"properties"`         // optional JSON, same for all tokens
 	PropertiesTemplate string `json:"propertiesTemplate"` // optional: first ID in series becomes template
