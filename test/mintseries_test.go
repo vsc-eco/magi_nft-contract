@@ -87,6 +87,84 @@ func TestMintSeriesEditionedTokens(t *testing.T) {
 	}
 }
 
+func TestMintSeriesWithSuffix(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	payload := []byte(`{"to":"hive:tibfox","idPrefix":"card-","idSuffix":"-rare","startNumber":1,"count":3,"amount":1,"maxSupply":1}`)
+	CallContract(t, ct, "mintSeries", payload, nil, ownerAddress, true, uint(150_000_000), "")
+
+	// IDs should be card-1-rare, card-2-rare, card-3-rare
+	for _, id := range []string{"card-1-rare", "card-2-rare", "card-3-rare"} {
+		balPayload := fmt.Sprintf(`{"account":"hive:tibfox","id":"%s"}`, id)
+		result := CallContract(t, ct, "balanceOf", []byte(balPayload), nil, ownerAddress, true, uint(150_000_000), "")
+		if result.Ret != `{"balance":1}` {
+			t.Errorf("Expected balance 1 for %s, got %s", id, result.Ret)
+		}
+	}
+
+	// card-1 (without suffix) should NOT exist
+	result := CallContract(t, ct, "balanceOf", []byte(`{"account":"hive:tibfox","id":"card-1"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"balance":0}` {
+		t.Errorf("Expected balance 0 for card-1 (no suffix), got %s", result.Ret)
+	}
+}
+
+func TestMintSeriesWithSuffixAndTemplate(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	// Template must match full generated ID including suffix
+	payload := []byte(`{"to":"hive:tibfox","idPrefix":"card-","idSuffix":"-epic","startNumber":1,"count":5,"amount":1,"maxSupply":1,"properties":{"rarity":"epic"},"propertiesTemplate":"card-1-epic"}`)
+	CallContract(t, ct, "mintSeries", payload, nil, ownerAddress, true, uint(200_000_000), "")
+
+	// Template token should have properties
+	result := CallContract(t, ct, "getProperties", []byte(`{"id":"card-1-epic"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"properties":{"rarity":"epic"}}` {
+		t.Errorf("Expected properties on template card-1-epic, got %s", result.Ret)
+	}
+
+	// Non-template tokens should NOT have properties stored
+	result = CallContract(t, ct, "getProperties", []byte(`{"id":"card-2-epic"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"properties":null}` {
+		t.Errorf("Expected no stored properties for card-2-epic, got %s", result.Ret)
+	}
+}
+
+func TestMintSeriesWithSuffixAndProperties(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	payload := []byte(`{"to":"hive:tibfox","idPrefix":"gem-","idSuffix":"-v2","startNumber":1,"count":2,"amount":1,"maxSupply":1,"properties":{"type":"diamond"}}`)
+	CallContract(t, ct, "mintSeries", payload, nil, ownerAddress, true, uint(150_000_000), "")
+
+	result := CallContract(t, ct, "getProperties", []byte(`{"id":"gem-1-v2"}`), nil, ownerAddress, true, uint(150_000_000), "")
+	if result.Ret != `{"properties":{"type":"diamond"}}` {
+		t.Errorf("Expected properties for gem-1-v2, got %s", result.Ret)
+	}
+}
+
+func TestMintSeriesFailsWithPipeInSuffix(t *testing.T) {
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	payload := []byte(`{"to":"hive:tibfox","idPrefix":"card-","idSuffix":"-bad|suffix","startNumber":1,"count":5,"amount":1,"maxSupply":1}`)
+	CallContract(t, ct, "mintSeries", payload, nil, ownerAddress, false, uint(150_000_000), "")
+}
+
+func TestMintSeriesWithEmptySuffix(t *testing.T) {
+	// Empty suffix should work the same as no suffix (backward compatible)
+	ct := SetupContractTest()
+	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")
+	payload := []byte(`{"to":"hive:tibfox","idPrefix":"card-","idSuffix":"","startNumber":1,"count":3,"amount":1,"maxSupply":1}`)
+	CallContract(t, ct, "mintSeries", payload, nil, ownerAddress, true, uint(150_000_000), "")
+
+	// IDs should be card-1, card-2, card-3 (no suffix appended)
+	for _, id := range []string{"card-1", "card-2", "card-3"} {
+		balPayload := fmt.Sprintf(`{"account":"hive:tibfox","id":"%s"}`, id)
+		result := CallContract(t, ct, "balanceOf", []byte(balPayload), nil, ownerAddress, true, uint(150_000_000), "")
+		if result.Ret != `{"balance":1}` {
+			t.Errorf("Expected balance 1 for %s, got %s", id, result.Ret)
+		}
+	}
+}
+
 func TestMintSeriesFailsIfNotOwner(t *testing.T) {
 	ct := SetupContractTest()
 	CallContract(t, ct, "init", DefaultInitPayload, nil, ownerAddress, true, uint(150_000_000), "")

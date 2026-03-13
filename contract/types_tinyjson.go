@@ -688,6 +688,8 @@ func (v *MintSeriesPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 			v.To = string(in.String())
 		case "idPrefix":
 			v.IdPrefix = string(in.String())
+		case "idSuffix":
+			v.IdSuffix = string(in.String())
 		case "startNumber":
 			v.StartNumber = uint64(in.Uint64())
 		case "count":
@@ -719,6 +721,10 @@ func (v MintSeriesPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.To)
 	out.RawString(`,"idPrefix":`)
 	out.String(v.IdPrefix)
+	if v.IdSuffix != "" {
+		out.RawString(`,"idSuffix":`)
+		out.String(v.IdSuffix)
+	}
 	out.RawString(`,"startNumber":`)
 	out.Uint64(v.StartNumber)
 	out.RawString(`,"count":`)

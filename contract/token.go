@@ -593,10 +593,10 @@ func MintBatch(payload *string) *string {
 }
 
 // MintSeries creates a series of token IDs with a shared configuration.
-// Token IDs are generated as: idPrefix + (startNumber + i) for i in [0, count).
+// Token IDs are generated as: idPrefix + (startNumber + i) + idSuffix for i in [0, count).
 // All tokens share the same amount, maxSupply, soulbound, and properties settings.
 // This avoids the large payload size of mintBatch when minting many identical tokens.
-// Payload: {"to": "hive:recipient", "idPrefix": "card-", "startNumber": 1, "count": 100, "amount": 1, "maxSupply": 1, "soulbound": false}
+// Payload: {"to": "hive:recipient", "idPrefix": "card-", "idSuffix": "-rare", "startNumber": 1, "count": 100, "amount": 1, "maxSupply": 1, "soulbound": false}
 // Only the contract owner can mint.
 //
 //go:wasmexport mintSeries
@@ -635,17 +635,22 @@ func MintSeries(payload *string) *string {
 	if p.StartNumber+p.Count < p.StartNumber {
 		sdk.Abort("StartNumber + Count overflows")
 	}
-	// Validate prefix for pipe characters (generated IDs use prefix + number)
+	// Validate prefix and suffix for pipe characters (generated IDs use prefix + number + suffix)
 	for i := 0; i < len(p.IdPrefix); i++ {
 		if p.IdPrefix[i] == '|' {
 			sdk.Abort("Invalid character in ID prefix")
+		}
+	}
+	for i := 0; i < len(p.IdSuffix); i++ {
+		if p.IdSuffix[i] == '|' {
+			sdk.Abort("Invalid character in ID suffix")
 		}
 	}
 	// Validate propertiesTemplate: must be within the generated range OR already exist as an NFT
 	if p.PropertiesTemplate != "" {
 		found := false
 		for j := uint64(0); j < p.Count; j++ {
-			if p.IdPrefix+uint64ToStr(p.StartNumber+j) == p.PropertiesTemplate {
+			if p.IdPrefix+uint64ToStr(p.StartNumber+j)+p.IdSuffix == p.PropertiesTemplate {
 				found = true
 				break
 			}
@@ -671,8 +676,8 @@ func MintSeries(payload *string) *string {
 	setTemplateProps := p.Properties != "" && p.PropertiesTemplate != ""
 
 	for i := uint64(0); i < p.Count; i++ {
-		id := p.IdPrefix + uint64ToStr(p.StartNumber+i)
-		// Skip full validateTokenId — prefix already checked for '|' and digits can't contain '|'.
+		id := p.IdPrefix + uint64ToStr(p.StartNumber+i) + p.IdSuffix
+		// Skip full validateTokenId — prefix and suffix already checked for '|' and digits can't contain '|'.
 		// Only need to verify length.
 		if len(id) > maxTokenIdLen {
 			sdk.Abort("Token ID exceeds maximum length")
