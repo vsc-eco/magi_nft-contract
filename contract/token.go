@@ -359,10 +359,12 @@ func Allowance(payload *string) *string {
 func Mint(payload *string) *string {
 	assertInit()
 	assertNotPaused()
-	owner, isOwner := getOwner()
-	if !isOwner {
-		sdk.Abort("Must be owner to mint")
+	caller := sdk.GetEnvKey("msg.caller")
+	if caller == nil {
+		sdk.Abort("Caller required")
 	}
+	operator := *caller
+	ownerAddr := getOwnerAddress()
 	if payload == nil || *payload == "" {
 		sdk.Abort("Payload required")
 	}
@@ -374,20 +376,53 @@ func Mint(payload *string) *string {
 		sdk.Abort("Invalid payload")
 	}
 
-	if p.To == "" {
-		sdk.Abort("To address required")
+	if p.Amount != 0 {
+		if p.To == "" {
+			sdk.Abort("To address required")
+		}
+		validateAddress(p.To)
 	}
-	validateAddress(p.To)
 	if p.Id == "" {
 		sdk.Abort("Token ID required")
 	}
 	validateTokenId(p.Id)
+
+	existingMax := getMaxSupply(p.Id)
+
+	// Define-only mode: amount == 0 registers an edition without minting.
 	if p.Amount == 0 {
-		sdk.Abort("Amount must be greater than 0")
+		if operator != ownerAddr {
+			sdk.Abort("Only owner can define an edition")
+		}
+		if existingMax != 0 {
+			sdk.Abort("Edition already defined")
+		}
+		if p.MaxSupply == 0 {
+			sdk.Abort("MaxSupply required for new token (1 = unique, >1 = editioned)")
+		}
+		setMaxSupply(p.Id, p.MaxSupply)
+		if p.Soulbound {
+			setSoulbound(p.Id)
+		}
+		if p.Properties != "" {
+			setTokenProperties(p.Id, p.Properties)
+			emitPropertiesSet(p.Id)
+		}
+		emitTokenCreated(p.Id, p.MaxSupply, p.Soulbound)
+		return jsonResponse(SuccessResponse{Success: true})
 	}
 
-	// Check/set max supply for this token
-	existingMax := getMaxSupply(p.Id)
+	// Mint authorization: owner or owner-approved operator mints uncapped
+	// (up to maxSupply); otherwise a per-token allowance the owner granted
+	// via approve is required and decremented per mint (ERC-6909).
+	if !isApprovedOrOwner(operator, ownerAddr) {
+		allowed := getAllowance(ownerAddr, operator, p.Id)
+		if allowed < p.Amount {
+			sdk.Abort("Must be owner or approved operator to mint")
+		}
+		setAllowance(ownerAddr, operator, p.Id, allowed-p.Amount)
+	}
+
 	var maxSupply uint64
 	if existingMax == 0 {
 		// First mint - maxSupply is required
@@ -438,7 +473,7 @@ func Mint(payload *string) *string {
 
 	incBalance(p.To, p.Id, p.Amount)
 	incTotalSupply(p.Id, p.Amount)
-	emitTransferSingle(owner, "", p.To, p.Id, p.Amount) // Mint: from is zero address
+	emitTransferSingle(operator, "", p.To, p.Id, p.Amount) // Mint: from is zero address, operator is caller
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
@@ -603,10 +638,12 @@ func MintBatch(payload *string) *string {
 func MintSeries(payload *string) *string {
 	assertInit()
 	assertNotPaused()
-	owner, isOwner := getOwner()
-	if !isOwner {
-		sdk.Abort("Must be owner to mint")
+	caller := sdk.GetEnvKey("msg.caller")
+	if caller == nil {
+		sdk.Abort("Caller required")
 	}
+	operator := *caller
+	ownerAddr := getOwnerAddress()
 	if payload == nil || *payload == "" {
 		sdk.Abort("Payload required")
 	}
@@ -618,16 +655,23 @@ func MintSeries(payload *string) *string {
 		sdk.Abort("Invalid payload")
 	}
 
-	if p.To == "" {
-		sdk.Abort("To address required")
+	if p.Amount != 0 {
+		if p.To == "" {
+			sdk.Abort("To address required")
+		}
+		validateAddress(p.To)
 	}
-	validateAddress(p.To)
 	if p.Count == 0 {
 		sdk.Abort("Count must be greater than 0")
 	}
-	if p.Amount == 0 {
-		sdk.Abort("Amount must be greater than 0")
+	defineOnly := p.Amount == 0
+	if defineOnly && operator != ownerAddr {
+		sdk.Abort("Only owner can define an edition")
 	}
+	// Mint authorization: owner or owner-approved operator mints uncapped
+	// (up to maxSupply); otherwise a per-token allowance is required and
+	// decremented per generated id (ERC-6909, mirrors safeBatchTransferFrom).
+	useAllowance := !defineOnly && !isApprovedOrOwner(operator, ownerAddr)
 	if p.MaxSupply == 0 {
 		sdk.Abort("MaxSupply required (1 = unique, >1 = editioned)")
 	}
@@ -685,13 +729,17 @@ func MintSeries(payload *string) *string {
 		ids[i] = id
 		amounts[i] = p.Amount
 
+		if useAllowance {
+			allowed := getAllowance(ownerAddr, operator, id)
+			if allowed < p.Amount {
+				sdk.Abort("Must be owner or approved operator to mint")
+			}
+			setAllowance(ownerAddr, operator, id, allowed-p.Amount)
+		}
+
 		existingMax := getMaxSupply(id)
 		if existingMax == 0 {
-			// First mint — we know balance, totalSupply, totalMinted are all 0.
-			// Skip reads and write directly.
-			if p.Amount > p.MaxSupply {
-				sdk.Abort("Would exceed max supply")
-			}
+			// First touch — balance, totalSupply, totalMinted are all 0.
 			setMaxSupply(id, p.MaxSupply)
 			if p.Soulbound {
 				setSoulbound(id)
@@ -702,12 +750,19 @@ func MintSeries(payload *string) *string {
 				setTokenProperties(id, p.Properties)
 				emitPropertiesSet(id)
 			}
-			if trackMinted {
-				sdk.StateSetObject(totalMintedKey(id), string(u64ToBytes(p.Amount)))
-			}
-			setBalance(p.To, id, p.Amount)
-			sdk.StateSetObject(totalSupplyKey(id), string(u64ToBytes(p.Amount)))
 			emitTokenCreated(id, p.MaxSupply, p.Soulbound)
+			if !defineOnly {
+				if p.Amount > p.MaxSupply {
+					sdk.Abort("Would exceed max supply")
+				}
+				if trackMinted {
+					sdk.StateSetObject(totalMintedKey(id), string(u64ToBytes(p.Amount)))
+				}
+				setBalance(p.To, id, p.Amount)
+				sdk.StateSetObject(totalSupplyKey(id), string(u64ToBytes(p.Amount)))
+			}
+		} else if defineOnly {
+			sdk.Abort("Edition already defined")
 		} else {
 			// Subsequent mint — need to read existing state
 			if p.MaxSupply != existingMax {
@@ -731,7 +786,9 @@ func MintSeries(payload *string) *string {
 			incTotalSupply(id, p.Amount)
 		}
 	}
-	emitTransferBatch(owner, "", p.To, ids, amounts) // Mint: from is zero address
+	if !defineOnly {
+		emitTransferBatch(operator, "", p.To, ids, amounts) // Mint: from is zero address, operator is caller
+	}
 
 	// Emit template relationship if propertiesTemplate is set
 	if p.PropertiesTemplate != "" {
@@ -1249,7 +1306,8 @@ func Exists(payload *string) *string {
 		sdk.Abort("Token ID required")
 	}
 
-	// A token exists if it has a maxSupply set (meaning it was minted at least once)
+	// A token exists once its maxSupply is set — either by a mint or by a
+	// define-only call (mint/mintSeries with amount == 0), even at zero supply.
 	exists := getMaxSupply(p.Id) > 0
 	return jsonResponse(ExistsResponse{Exists: exists})
 }
