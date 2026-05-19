@@ -22,6 +22,11 @@ const (
 	maxURILen     = 1024
 	maxNameLen    = 64
 	maxSymbolLen  = 16
+	// maxBatchSize caps the number of entries in batch operations
+	// (safeBatchTransferFrom, mintBatch, burnBatch, balanceOfBatch) to
+	// bound per-call work and prevent gas/DoS blowups. Set to 256 to stay
+	// consistent with the maxAddressLen/maxTokenIdLen=256 convention above.
+	maxBatchSize = 256
 )
 
 // validateAddress checks that an address is within length bounds and contains

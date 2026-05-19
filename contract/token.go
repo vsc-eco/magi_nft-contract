@@ -188,6 +188,9 @@ func SafeBatchTransferFrom(payload *string) *string {
 	if len(p.Ids) != len(p.Amounts) {
 		sdk.Abort("IDs and amounts length mismatch")
 	}
+	if len(p.Ids) > maxBatchSize {
+		sdk.Abort("Batch size exceeds maximum")
+	}
 	if p.From == p.To {
 		sdk.Abort("Cannot transfer to self")
 	}
@@ -479,6 +482,9 @@ func MintBatch(payload *string) *string {
 	}
 	if len(p.MaxSupplies) > 0 && len(p.Ids) != len(p.MaxSupplies) {
 		sdk.Abort("IDs and maxSupplies length mismatch")
+	}
+	if len(p.Ids) > maxBatchSize {
+		sdk.Abort("Batch size exceeds maximum")
 	}
 	for _, id := range p.Ids {
 		validateTokenId(id)
@@ -838,6 +844,9 @@ func BurnBatch(payload *string) *string {
 	if len(p.Ids) != len(p.Amounts) {
 		sdk.Abort("IDs and amounts length mismatch")
 	}
+	if len(p.Ids) > maxBatchSize {
+		sdk.Abort("Batch size exceeds maximum")
+	}
 	for _, id := range p.Ids {
 		validateTokenId(id)
 	}
@@ -1061,6 +1070,9 @@ func BalanceOfBatch(payload *string) *string {
 	}
 	if len(p.Accounts) != len(p.Ids) {
 		sdk.Abort("Accounts and IDs length mismatch")
+	}
+	if len(p.Accounts) > maxBatchSize {
+		sdk.Abort("Batch size exceeds maximum")
 	}
 
 	balances := make([]uint64, len(p.Accounts))
