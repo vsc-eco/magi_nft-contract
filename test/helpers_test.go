@@ -10,10 +10,17 @@ import (
 	"vsc-node/lib/test_utils"
 	contract_session "vsc-node/modules/contract/session"
 	"vsc-node/modules/db/vsc/contracts"
+	ledgerDb "vsc-node/modules/db/vsc/ledger"
 	stateEngine "vsc-node/modules/state-processing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+// rcFundingHbd is the hbd balance each test account is created with. 1 RC == 1
+// hbd milliunit, so this is 1,000 HBD == 1,000,000 RC: comfortably above the
+// helper's RcLimit of 100,000, which keeps the RC limit rather than the account
+// balance as the gas ceiling, with room for a whole suite of calls.
+const rcFundingHbd int64 = 1_000_000
 
 // CallResult is an alias for the test call result type
 type CallResult = test_utils.ContractTestCallResult
@@ -29,10 +36,32 @@ var DefaultInitPayload = []byte(`{"name":"Magi NFT","symbol":"MNFT","baseUri":"h
 //go:embed artifacts/main.wasm
 var ContractWasm []byte
 
+// testAccounts is every account this suite calls as. SetupContractTest funds each
+// one, because the node derives a contract call's WASM gas budget from the
+// caller's RC — transactions.go computes gas = min(availableRC, RcLimit), and
+// rc-system derives availableRC from the account's hbd balance plus the free
+// allowance for Hive accounts (params.RC_HIVE_FREE_AMOUNT, 10_000). RC is charged
+// cumulatively, so on the free allowance alone a caller runs out part-way through
+// a multi-call test and the rest of its calls fail on budget rather than on
+// anything the contract did. Funded callers keep RcLimit (and each test's maxGas
+// assertion) the binding limit, which is what these tests mean to measure.
+var testAccounts = []string{
+	"hive:alice", "hive:attacker", "hive:bob", "hive:buyer", "hive:buyer1",
+	"hive:buyer2", "hive:collector", "hive:contractx", "hive:contracty",
+	"hive:holder", "hive:market", "hive:marketplace", "hive:newowner",
+	"hive:operator", "hive:operator1", "hive:operator2", "hive:other",
+	"hive:othercontract", "hive:owner2", "hive:owner3", "hive:recipient",
+	"hive:regularuser", "hive:stranger", "hive:third", "hive:tibfox",
+	"hive:unknown", "hive:user1",
+}
+
 // Setup an Instance of a test
 func SetupContractTest() *test_utils.ContractTest {
 	CleanBadgerDB()
 	ct := test_utils.NewContractTest()
+	for _, account := range testAccounts {
+		ct.Deposit(account, rcFundingHbd, ledgerDb.AssetHbd)
+	}
 	ct.RegisterContract(ContractID, ownerAddress, ContractWasm)
 	return &ct
 }

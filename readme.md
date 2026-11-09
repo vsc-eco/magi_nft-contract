@@ -594,6 +594,23 @@ Set a specific URI for individual tokens:
 
 Custom URIs take precedence over the baseUri pattern.
 
+## SDK
+
+`sdk/` is vendored **verbatim** from
+[vsc-eco/go-contract-template](https://github.com/vsc-eco/go-contract-template)
+and is byte-identical to the copy in every other Magi contract repo. Do not
+edit it here — change it in the template and re-sync:
+
+```bash
+/path/to/go-contract-template/scripts/sync-sdk.sh .
+```
+
+The SDK exposes the host functions the node publishes in
+`modules/wasm/sdk/sdk.go`. Which of them this repo's tests can actually execute
+is set by the `replace vsc-node` pin in `go.mod`; a wrapper whose host function
+is absent from that node makes the module fail to instantiate, so bump the pin
+before calling a newer one.
+
 ## Build
 
 ```bash
@@ -666,6 +683,10 @@ magi_nft/
 | mintBatch              | ~285 per token (with template) |
 | safeBatchTransferFrom  | ~139 per token |
 | burnBatch              | ~87 per token  |
+
+Multiply by batch size as usual: a full 256-entry `mintBatch` measures 68,833 RC
+(6.88B gas), so batch callers need an hbd balance — RC is the hbd balance plus the
+10,000 free allowance, and the gas budget is `min(availableRC, RcLimit)`.
 
 ## Benchmark: Real-World Scenario
 
